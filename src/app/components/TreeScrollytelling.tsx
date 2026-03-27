@@ -19,8 +19,9 @@ export function TreeScrollytelling({ totalPages = 4, onNavigateToShop }: TreeScr
   const [images, setImages] = useState<HTMLImageElement[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadedCount, setLoadedCount] = useState(0);
+  const [visualProgress, setVisualProgress] = useState(0);
   const [bgColor, setBgColor] = useState('#FFFFFF');
-  const prevFrameRef = useRef<number>(-1);
+  const prevImgRef = useRef<HTMLImageElement | null>(null);
   const geometryRef = useRef<{ scale: number, x: number, y: number } | null>(null);
 
   // 1. Scroll-linked mapping
@@ -32,59 +33,108 @@ export function TreeScrollytelling({ totalPages = 4, onNavigateToShop }: TreeScr
   // Map scroll progress (0-1) to frame index (0-241)
   const frameIndex = useTransform(scrollYProgress, [0, 1], [0, TOTAL_FRAMES - 1]);
 
-  // 2. Preload Images
+  // 2. Preload Images Progressive
   useEffect(() => {
-    const loadImages = async () => {
-      const imgPromises = Array.from({ length: TOTAL_FRAMES }, (_, i) => {
-        return new Promise<HTMLImageElement>((resolve, reject) => {
-          const img = new Image();
-          // No padding needed, using frame-1.png...frame-242.png
-          // Cache buster v=1 for fresh load
-          img.src = `/${FRAME_DIR}/${FRAME_PREFIX}${i + 1}${FRAME_SUFFIX}?v=1`;
-          img.onload = () => {
-            setLoadedCount(prev => prev + 1);
-            resolve(img);
-          };
-          img.onerror = () => {
-             console.warn(`Failed to load: /${FRAME_DIR}/${FRAME_PREFIX}${i + 1}${FRAME_SUFFIX}`);
-             setLoadedCount(prev => prev + 1);
-             // Resolve with null to avoid blocking Promise.all
-             resolve(null as any); 
-          };
-        });
+    let isMounted = true;
+    
+    const loadImage = (index: number): Promise<HTMLImageElement> => {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.src = `/${FRAME_DIR}/${FRAME_PREFIX}${index + 1}${FRAME_SUFFIX}?v=1`;
+        img.onload = () => {
+          if (isMounted) setLoadedCount(prev => prev + 1);
+          resolve(img);
+        };
+        img.onerror = () => {
+          console.warn(`Failed to load frame ${index + 1}`);
+          if (isMounted) setLoadedCount(prev => Math.min(TOTAL_FRAMES, prev + 1));
+          resolve(null as any);
+        };
       });
+    };
 
+    const initSequence = async () => {
       try {
-        const loadedImages = await Promise.all(imgPromises);
-        setImages(loadedImages);
+        // 1. Load just the very first frame to unblock the UI instantly
+        const firstFrame = await loadImage(0);
+        if (!isMounted) return;
         
-        // Extract the exact background color from the corner of the first frame
-        // to make the blend completely seamless
         let extractedColor = '#FFFFFF';
-        if (loadedImages[0]) {
+        if (firstFrame) {
            const tempCanvas = document.createElement('canvas');
            tempCanvas.width = 20;
            tempCanvas.height = 20;
            const tCtx = tempCanvas.getContext('2d');
            if (tCtx) {
-              // Draw image without scaling it down
-              tCtx.drawImage(loadedImages[0], 0, 0);
-              // Sample a pixel slightly inward to avoid edge artifacts
+              tCtx.drawImage(firstFrame, 0, 0);
               const [r, g, b] = tCtx.getImageData(10, 10, 1, 1).data;
               extractedColor = `rgb(${r}, ${g}, ${b})`;
               setBgColor(extractedColor);
-              // Also apply to document body so entire page matches
               document.body.style.backgroundColor = extractedColor;
            }
         }
         
-        setIsLoading(false);
+        // Seed the images array with the first frame
+        const initialImages = new Array(TOTAL_FRAMES).fill(null);
+        initialImages[0] = firstFrame;
+        setImages(initialImages);
+
+        // 2. Load the rest in the background using batches of 5
+        const loadRest = async () => {
+          for (let i = 1; i < TOTAL_FRAMES; i++) {
+            if (!isMounted) break;
+            const batch = [];
+            for (let j = 0; j < 5 && i < TOTAL_FRAMES; j++, i++) {
+               batch.push(loadImage(i).then(img => ({ index: i, img })));
+            }
+            i--; // adjust because the outer loop will increment
+            
+            const results = await Promise.all(batch);
+            if (!isMounted) return;
+            
+            setImages(prev => {
+              const next = [...prev];
+              results.forEach(({ index, img }) => {
+                 next[index] = img;
+              });
+              return next;
+            });
+          }
+        };
+        
+        loadRest();
       } catch (error) {
         console.error("Error preloading images:", error);
       }
     };
 
-    loadImages();
+    initSequence();
+    return () => { isMounted = false; };
+  }, []);
+
+  // 2.5 Artificial 4-second loading progression
+  useEffect(() => {
+    let start = performance.now();
+    let animationFrame: number;
+    const duration = 4000;
+    
+    const animate = (time: number) => {
+      const elapsed = time - start;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Easing function (easeOutQuad)
+      const easeOut = 1 - (1 - progress) * (1 - progress);
+      setVisualProgress(easeOut);
+      
+      if (progress < 1) {
+        animationFrame = requestAnimationFrame(animate);
+      } else {
+        setIsLoading(false);
+      }
+    };
+    
+    animationFrame = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animationFrame);
   }, []);
 
   // 3. Draw to Canvas on Scroll Frame Change
@@ -99,11 +149,23 @@ export function TreeScrollytelling({ totalPages = 4, onNavigateToShop }: TreeScr
 
     const imgIndex = clamp(Math.floor(latestFrameIndex), 0, TOTAL_FRAMES - 1);
     
-    // OPTIMIZATION: Skip re-draw if frame hasn't changed
-    if (imgIndex === prevFrameRef.current && geometryRef.current) return;
-    prevFrameRef.current = imgIndex;
+    // Find closest loaded image if exact frame isn't ready
+    let img = images[imgIndex];
+    if (!img) {
+      for (let i = imgIndex; i >= 0; i--) {
+        if (images[i]) {
+          img = images[i];
+          break;
+        }
+      }
+    }
+    
+    if (!img) return; // Ensure we have at least one frame
 
-    const img = images[imgIndex];
+    // OPTIMIZATION: Skip re-draw if we literally just drew this exact image
+    if (img === prevImgRef.current && geometryRef.current) return;
+    prevImgRef.current = img;
+
     if (img) {
       if (!geometryRef.current) {
         const canvasWidth = canvas.width;
@@ -146,7 +208,7 @@ export function TreeScrollytelling({ totalPages = 4, onNavigateToShop }: TreeScr
         canvasRef.current.height = window.innerHeight;
         // Invalidate geometry cache on resize
         geometryRef.current = null;
-        prevFrameRef.current = -1;
+        prevImgRef.current = null;
         
         if (images.length > 0) {
           renderFrame(frameIndex.get());
@@ -209,11 +271,11 @@ export function TreeScrollytelling({ totalPages = 4, onNavigateToShop }: TreeScr
                       strokeLinecap="round"
                       strokeLinejoin="round"
                     />
-                    {/* The Unspooling Wire, tracking load progress perfectly */}
+                    {/* The Unspooling Wire, tracking visual progress beautifully */}
                     <motion.path
                       d="M20,50 C20,20 80,20 80,50 C80,80 20,80 20,50 C20,30 65,30 65,50 C65,70 35,70 35,50 C35,40 55,40 55,50 C55,60 45,60 45,50"
                       initial={{ pathLength: 0 }}
-                      animate={{ pathLength: loadedCount / TOTAL_FRAMES }}
+                      animate={{ pathLength: visualProgress }}
                       transition={{ ease: "linear", duration: 0.1 }}
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -228,14 +290,14 @@ export function TreeScrollytelling({ totalPages = 4, onNavigateToShop }: TreeScr
                 <div className="w-full relative">
                   <div className="flex justify-between text-xs uppercase tracking-[0.3em] text-black/40 mb-3">
                     <span>Threading</span>
-                    <span className="text-black font-medium">{Math.round((loadedCount / TOTAL_FRAMES) * 100)}%</span>
+                    <span className="text-black font-medium">{Math.floor(visualProgress * 100)}%</span>
                   </div>
                   {/* Fine Line representing pulled wire */}
                   <div className="h-[1px] w-full bg-black/5 relative overflow-hidden">
                     <motion.div 
                       className="absolute top-0 left-0 h-full bg-black shadow-[0_0_8px_rgba(0,0,0,0.5)]"
                       initial={{ width: '0%' }}
-                      animate={{ width: `${(loadedCount / TOTAL_FRAMES) * 100}%` }}
+                      animate={{ width: `${visualProgress * 100}%` }}
                       transition={{ ease: "easeOut", duration: 0.2 }}
                     />
                   </div>
