@@ -1,13 +1,15 @@
-import { ShoppingCart, Search, Menu } from 'lucide-react';
+import { ShoppingCart, Search, Menu, Settings } from 'lucide-react';
 import { useState } from 'react';
 
 interface HeaderProps {
   cartCount: number;
   onCartClick: () => void;
   onLogoClick?: () => void;
+  isAdmin?: boolean;
+  onAdminClick?: () => void;
 }
 
-export function Header({ cartCount, onCartClick, onLogoClick }: HeaderProps) {
+export function Header({ cartCount, onCartClick, onLogoClick, isAdmin, onAdminClick }: HeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
@@ -29,6 +31,16 @@ export function Header({ cartCount, onCartClick, onLogoClick }: HeaderProps) {
 
           {/* Right side actions */}
           <div className="flex items-center space-x-6">
+            {isAdmin && (
+              <button
+                onClick={onAdminClick}
+                className="hidden md:flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] font-medium text-black/40 hover:text-black transition-colors"
+                title="Admin Panel"
+              >
+                <Settings className="w-3.5 h-3.5" />
+                Admin
+              </button>
+            )}
             <button className="hover:opacity-50 transition-opacity">
               <Search className="w-5 h-5 stroke-[1.5]" />
             </button>

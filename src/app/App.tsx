@@ -1,84 +1,82 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { onAuthStateChanged, User } from 'firebase/auth';
+import { auth } from '../firebase';
 import { Header } from './components/Header';
 import { TreeScrollytelling } from './components/TreeScrollytelling';
 import { CartDrawer } from './components/CartDrawer';
 import { ProductDetailModal } from './components/ProductDetailModal';
 import { Product } from './components/ProductCard';
 import { ProductGrid } from './components/ProductGrid';
+import { AdminLogin } from './components/admin/AdminLogin';
+import { AdminPanel } from './components/admin/AdminPanel';
+import { fetchProducts } from '../lib/products';
+
+// Firestore Product type maps 1-to-1 with the existing Product interface
+// so no re-typing needed.
 
 interface CartItem extends Product {
   quantity: number;
 }
 
-// Mock product data
-const products: Product[] = [
-  {
-    id: '1',
-    name: 'Ethereal Dreams',
-    artist: 'Moises Ragay',
-    price: 2450,
-    image: 'https://images.unsplash.com/photo-1758557839522-7d6150265d39?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3aXJlJTIwYXJ0JTIwc2N1bHB0dXJlJTIwbWV0YWx8ZW58MXx8fHwxNzc0MTc2MTU3fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
-    category: 'Abstract',
-  },
-  {
-    id: '2',
-    name: 'Golden Flow',
-    artist: 'Moises Ragay',
-    price: 1850,
-    image: 'https://images.unsplash.com/photo-1758800367555-94e5b085597b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhYnN0cmFjdCUyMHdpcmUlMjBzY3VscHR1cmUlMjBnb2xkZW58ZW58MXx8fHwxNzc0MTc2MTU4fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
-    category: 'Abstract',
-  },
-  {
-    id: '3',
-    name: 'Mesh Harmony',
-    artist: 'Moises Ragay',
-    price: 1650,
-    image: 'https://images.unsplash.com/photo-1718463382422-8b9449599ed8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtZXRhbCUyMHdpcmUlMjBtZXNoJTIwYXJ0fGVufDF8fHx8MTc3NDE3NjE1OHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
-    category: 'Geometric',
-  },
-  {
-    id: '4',
-    name: 'Copper Waves',
-    artist: 'Moises Ragay',
-    price: 2100,
-    image: 'https://images.unsplash.com/photo-1758560534921-07ea719ab8d0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb3BwZXIlMjB3aXJlJTIwc2N1bHB0dXJlJTIwYXJ0aXN0aWN8ZW58MXx8fHwxNzc0MTc2MTU4fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
-    category: 'Organic',
-  },
-  {
-    id: '5',
-    name: 'Minimalist Lines',
-    artist: 'Moises Ragay',
-    price: 1450,
-    image: 'https://images.unsplash.com/photo-1770573215406-c392122436b4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtaW5pbWFsaXN0JTIwd2lyZSUyMGFydCUyMG1vZGVybnxlbnwxfHx8fDE3NzQxNzYxNTl8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
-    category: 'Minimal',
-  },
-  {
-    id: '6',
-    name: 'Steel Sculpture',
-    artist: 'Moises Ragay',
-    price: 2850,
-    image: 'https://images.unsplash.com/photo-1759390304919-eec9e37f5030?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzdGVlbCUyMHdpcmUlMjBzY3VscHR1cmUlMjBjb250ZW1wb3Jhcnl8ZW58MXx8fHwxNzc0MTc2MTYwfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
-    category: 'Geometric',
-  },
-  {
-    id: '7',
-    name: 'Geometric Poetry',
-    artist: 'Moises Ragay',
-    price: 1950,
-    image: 'https://images.unsplash.com/photo-1731850040444-5194b805f2b6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxnZW9tZXRyaWMlMjB3aXJlJTIwYXJ0JTIwZGVzaWdufGVufDF8fHx8MTc3NDE3NjE2MHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
-    category: 'Geometric',
-  },
-  {
-    id: '8',
-    name: 'Handcrafted Spirit',
-    artist: 'Moises Ragay',
-    price: 1750,
-    image: 'https://images.unsplash.com/photo-1759153748331-f33556c4e69e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoYW5kbWFkZSUyMHdpcmUlMjBzY3VscHR1cmUlMjBjcmFmdHxlbnwxfHx8fDE3NzQxNzYxNjB8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
-    category: 'Organic',
-  },
-];
+// Secret key sequence to open admin login: press Shift+A three times
+const ADMIN_KEY = 'AAA';
 
 export default function App() {
+  // ─── Auth ─────────────────────────────────────────────────────────────────
+  const [adminUser, setAdminUser] = useState<User | null>(null);
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [keyBuffer, setKeyBuffer] = useState('');
+
+  // Listen to Firebase auth state
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (user) => {
+      setAdminUser(user);
+      if (!user) {
+        setShowAdminPanel(false);
+      }
+    });
+    return () => unsub();
+  }, []);
+
+  // Secret keyboard shortcut: Shift+A × 3 to open admin login
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.shiftKey && e.key === 'A') {
+        const next = (keyBuffer + 'A').slice(-3);
+        setKeyBuffer(next);
+        if (next === ADMIN_KEY) {
+          setKeyBuffer('');
+          if (adminUser) {
+            setShowAdminPanel(true);
+          } else {
+            setShowAdminLogin(true);
+          }
+        }
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [keyBuffer, adminUser]);
+
+  // ─── Products (Firestore) ─────────────────────────────────────────────────
+  const [products, setProducts] = useState<Product[]>([]);
+  const [productsLoaded, setProductsLoaded] = useState(false);
+
+  const loadProducts = async () => {
+    try {
+      const list = await fetchProducts();
+      setProducts(list);
+    } catch (err) {
+      console.error('Failed to load products from Firestore:', err);
+    } finally {
+      setProductsLoaded(true);
+    }
+  };
+
+  useEffect(() => { loadProducts(); }, []);
+
+  // ─── Shop & Cart ──────────────────────────────────────────────────────────
   const [currentView, setCurrentView] = useState<'landing' | 'shop'>('landing');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -92,16 +90,11 @@ export default function App() {
       : products.filter((p) => p.category === selectedCategory);
 
   const handleAddToCart = (product: Product) => {
-    const existingItem = cartItems.find((item) => item.id === product.id);
-    
-    if (existingItem) {
-      setCartItems(
-        cartItems.map((item) =>
-          item.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        )
-      );
+    const existing = cartItems.find((item) => item.id === product.id);
+    if (existing) {
+      setCartItems(cartItems.map((item) =>
+        item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+      ));
     } else {
       setCartItems([...cartItems, { ...product, quantity: 1 }]);
     }
@@ -111,11 +104,9 @@ export default function App() {
     if (quantity === 0) {
       handleRemoveItem(id);
     } else {
-      setCartItems(
-        cartItems.map((item) =>
-          item.id === id ? { ...item, quantity } : item
-        )
-      );
+      setCartItems(cartItems.map((item) =>
+        item.id === id ? { ...item, quantity } : item
+      ));
     }
   };
 
@@ -141,14 +132,15 @@ export default function App() {
         </main>
       ) : (
         <>
-          <Header 
-            cartCount={totalCartItems} 
-            onCartClick={() => setIsCartOpen(true)} 
-            onLogoClick={() => setCurrentView('landing')} 
+          <Header
+            cartCount={totalCartItems}
+            onCartClick={() => setIsCartOpen(true)}
+            onLogoClick={() => setCurrentView('landing')}
+            isAdmin={!!adminUser}
+            onAdminClick={() => setShowAdminPanel(true)}
           />
-          
+
           <main className="pt-24">
-            {/* Made to Order Shop Section */}
             <section id="shop-section" className="py-20 px-6 md:px-16 max-w-[1400px] mx-auto min-h-screen">
               <div className="max-w-3xl mx-auto text-center mb-24">
                 <h3 className="font-serif text-4xl md:text-5xl tracking-tight mb-8">
@@ -159,14 +151,36 @@ export default function App() {
                 </p>
                 <div className="w-px h-24 bg-black/20 mx-auto"></div>
               </div>
-              
-              <ProductGrid products={filteredProducts} onProductClick={handleProductClick} onAddToCart={handleAddToCart} />
+
+              {!productsLoaded ? (
+                <div className="flex items-center justify-center py-32 text-black/30">
+                  <p className="text-sm uppercase tracking-[0.3em]">Loading collection…</p>
+                </div>
+              ) : products.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-32 text-black/30 text-center">
+                  <p className="text-sm uppercase tracking-[0.3em] mb-4">No products available yet.</p>
+                  {adminUser && (
+                    <button
+                      onClick={() => setShowAdminPanel(true)}
+                      className="text-xs uppercase tracking-[0.2em] underline underline-offset-4 hover:opacity-60 transition-opacity"
+                    >
+                      Add products in Admin Panel
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <ProductGrid
+                  products={filteredProducts}
+                  onProductClick={handleProductClick}
+                  onAddToCart={handleAddToCart}
+                />
+              )}
             </section>
           </main>
         </>
       )}
 
-      {/* Modals and Drawers */}
+      {/* ─── Cart & Product Modal ──────────────────────────────────────── */}
       <CartDrawer
         isOpen={isCartOpen}
         onClose={() => setIsCartOpen(false)}
@@ -181,6 +195,26 @@ export default function App() {
         onClose={() => setIsProductModalOpen(false)}
         onAddToCart={handleAddToCart}
       />
+
+      {/* ─── Admin ────────────────────────────────────────────────────── */}
+      {showAdminLogin && (
+        <AdminLogin 
+          onClose={() => setShowAdminLogin(false)} 
+          onSuccess={() => {
+            setShowAdminLogin(false);
+            setShowAdminPanel(true);
+          }}
+        />
+      )}
+
+      {showAdminPanel && adminUser && (
+        <AdminPanel
+          onClose={() => {
+            setShowAdminPanel(false);
+            loadProducts(); // Refresh products after admin makes changes
+          }}
+        />
+      )}
     </div>
   );
 }
