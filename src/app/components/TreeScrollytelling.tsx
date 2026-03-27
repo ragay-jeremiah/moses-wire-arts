@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { motion, useScroll, useTransform, AnimatePresence } from 'motion/react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { motion, useScroll, useTransform, AnimatePresence, useSpring } from 'motion/react';
+import '../styles/vignette.css';
 
 interface TreeScrollytellingProps {
   totalPages?: number;
@@ -32,6 +33,13 @@ export function TreeScrollytelling({ totalPages = 4, onNavigateToShop }: TreeScr
 
   // Map scroll progress (0-1) to frame index (0-241)
   const frameIndex = useTransform(scrollYProgress, [0, 1], [0, TOTAL_FRAMES - 1]);
+  
+  // Physics momentum: Smoothing the frame transitions
+  const springFrameIndex = useSpring(frameIndex, {
+    stiffness: 45,
+    damping: 30,
+    restDelta: 0.001
+  });
 
   // 2. Preload Images Progressive
   useEffect(() => {
@@ -55,7 +63,7 @@ export function TreeScrollytelling({ totalPages = 4, onNavigateToShop }: TreeScr
 
     const initSequence = async () => {
       try {
-        // 1. Load just the very first frame to unblock the UI instantly
+        // 1. Load just the first few frames to unblock the UI quickly
         const firstFrame = await loadImage(0);
         if (!isMounted) return;
         
@@ -74,20 +82,33 @@ export function TreeScrollytelling({ totalPages = 4, onNavigateToShop }: TreeScr
            }
         }
         
-        // Seed the images array with the first frame
         const initialImages = new Array(TOTAL_FRAMES).fill(null);
         initialImages[0] = firstFrame;
         setImages(initialImages);
 
-        // 2. Load the rest in the background using batches of 5
+        // 2. Load the rest in background
         const loadRest = async () => {
-          for (let i = 1; i < TOTAL_FRAMES; i++) {
+          // Preload essential first 20 frames quickly
+          for(let i = 1; i < 20; i++) {
+             const img = await loadImage(i);
+             if(!isMounted) return;
+             setImages(prev => {
+                const next = [...prev];
+                next[i] = img;
+                return next;
+             });
+          }
+          
+          // Once 20 frames are ready, we can stop the main loader
+          if(isMounted) setIsLoading(false);
+
+          for (let i = 20; i < TOTAL_FRAMES; i++) {
             if (!isMounted) break;
             const batch = [];
-            for (let j = 0; j < 5 && i < TOTAL_FRAMES; j++, i++) {
+            for (let j = 0; j < 8 && i < TOTAL_FRAMES; j++, i++) {
                batch.push(loadImage(i).then(img => ({ index: i, img })));
             }
-            i--; // adjust because the outer loop will increment
+            i--;
             
             const results = await Promise.all(batch);
             if (!isMounted) return;
@@ -112,36 +133,17 @@ export function TreeScrollytelling({ totalPages = 4, onNavigateToShop }: TreeScr
     return () => { isMounted = false; };
   }, []);
 
-  // 2.5 Artificial 4-second loading progression
+  // Use real loading progress for visual loader
   useEffect(() => {
-    let start = performance.now();
-    let animationFrame: number;
-    const duration = 4000;
-    
-    const animate = (time: number) => {
-      const elapsed = time - start;
-      const progress = Math.min(elapsed / duration, 1);
-      
-      // Easing function (easeOutQuad)
-      const easeOut = 1 - (1 - progress) * (1 - progress);
-      setVisualProgress(easeOut);
-      
-      if (progress < 1) {
-        animationFrame = requestAnimationFrame(animate);
-      } else {
-        setIsLoading(false);
-      }
-    };
-    
-    animationFrame = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(animationFrame);
-  }, []);
+     const target = loadedCount / TOTAL_FRAMES;
+     setVisualProgress(prev => prev + (target - prev) * 0.1);
+  }, [loadedCount]);
 
   // 3. Draw to Canvas on Scroll Frame Change
 
   // 3. Render logic
 
-  const renderFrame = (latestFrameIndex: number) => {
+  const renderFrame = useCallback((latestFrameIndex: number) => {
     const canvas = canvasRef.current;
     if (!canvas || images.length === 0) return;
     const ctx = canvas.getContext('2d', { alpha: false });
@@ -149,7 +151,6 @@ export function TreeScrollytelling({ totalPages = 4, onNavigateToShop }: TreeScr
 
     const imgIndex = clamp(Math.floor(latestFrameIndex), 0, TOTAL_FRAMES - 1);
     
-    // Find closest loaded image if exact frame isn't ready
     let img = images[imgIndex];
     if (!img) {
       for (let i = imgIndex; i >= 0; i--) {
@@ -160,45 +161,42 @@ export function TreeScrollytelling({ totalPages = 4, onNavigateToShop }: TreeScr
       }
     }
     
-    if (!img) return; // Ensure we have at least one frame
+    if (!img) return;
 
-    // OPTIMIZATION: Skip re-draw if we literally just drew this exact image
     if (img === prevImgRef.current && geometryRef.current) return;
     prevImgRef.current = img;
 
-    if (img) {
-      if (!geometryRef.current) {
-        const canvasWidth = canvas.width;
-        const canvasHeight = canvas.height;
-        const imgWidth = img.width;
-        const imgHeight = img.height;
-        const scale = Math.max(canvasWidth / imgWidth, canvasHeight / imgHeight);
-        geometryRef.current = {
-          scale,
-          x: (canvasWidth / 2) - (imgWidth / 2) * scale,
-          y: (canvasHeight / 2) - (imgHeight / 2) * scale
-        };
-      }
-
-      const { scale, x, y } = geometryRef.current;
-      ctx.fillStyle = bgColor;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+    if (!geometryRef.current) {
+      const canvasWidth = canvas.width;
+      const canvasHeight = canvas.height;
+      const imgWidth = img.width;
+      const imgHeight = img.height;
+      const scale = Math.max(canvasWidth / imgWidth, canvasHeight / imgHeight);
+      geometryRef.current = {
+        scale,
+        x: (canvasWidth / 2) - (imgWidth / 2) * scale,
+        y: (canvasHeight / 2) - (imgHeight / 2) * scale
+      };
     }
-  };
+
+    const { scale, x, y } = geometryRef.current;
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+  }, [images, bgColor]);
 
   // 3. Draw to Canvas on Scroll Frame Change
   useEffect(() => {
     if (images.length === 0 || !canvasRef.current) return;
 
-    // Use motion's onChange to trigger canvas updates
-    const unsubscribe = frameIndex.on("change", renderFrame);
+    // Use spring index for smooth visual update
+    const unsubscribe = springFrameIndex.on("change", renderFrame);
     
     // Initial draw
-    renderFrame(frameIndex.get());
+    renderFrame(springFrameIndex.get());
 
     return () => unsubscribe();
-  }, [images, frameIndex, renderFrame]);
+  }, [images, springFrameIndex, renderFrame]);
 
   // 4. Handle Window Resize
   useEffect(() => {
@@ -230,6 +228,10 @@ export function TreeScrollytelling({ totalPages = 4, onNavigateToShop }: TreeScr
           ref={canvasRef}
           className="w-full h-full object-cover pointer-events-none"
         />
+
+        {/* Premium Visual Overlays */}
+        <div className="premium-vignette" />
+        <div className="premium-grain" />
 
         {/* Elegant Editorial Watermark Cover */}
         <div 
@@ -396,41 +398,57 @@ function SectionOverlay({
     'center': 'top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 text-center items-center w-[95vw] md:w-auto'
   };
 
+  const words = title ? title.split(' ') : [];
+
   return (
     <motion.div 
       style={{ opacity, y }}
-      className={`absolute flex flex-col pointer-events-none z-20 md:max-w-none ${alignmentClasses[align as keyof typeof alignmentClasses] || alignmentClasses['center']}`}
+      className={`absolute flex flex-col pointer-events-none z-20 md:max-w-4xl px-8 ${alignmentClasses[align as keyof typeof alignmentClasses] || alignmentClasses['center']}`}
     >
       {/* High-Contrast Radial Glow Behind Text (only if title exists) */}
-      {title && <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.95)_0%,rgba(255,255,255,0.6)_40%,transparent_70%)] -z-10 scale-[1.5] md:scale-[1.8] blur-xl pointer-events-none" />}
+      {title && <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.95)_0%,rgba(255,255,255,0.7)_40%,transparent_80%)] -z-10 scale-[1.8] md:scale-[2.4] blur-3xl pointer-events-none" />}
 
       {title && (
-        <h2 className="font-serif text-5xl md:text-7xl lg:text-[7rem] tracking-tight text-black leading-[1.05] mb-6 font-medium drop-shadow-[0_2px_10px_rgba(255,255,255,1)]">
-          {title}
+        <h2 className="font-serif text-5xl md:text-8xl lg:text-[10rem] tracking-tight text-black leading-[0.95] mb-8 font-medium drop-shadow-[0_2px_15px_rgba(255,255,255,1)]">
+          {words.map((word, i) => (
+            <span key={i} className="char-reveal mr-[0.2em]">
+              <motion.span 
+                className="char-inner inline-block"
+                initial={{ y: "100%" }}
+                animate={{ y: progress.get() >= range[0] ? "0%" : "100%" }}
+                transition={{ duration: 0.8, delay: i * 0.1, ease: [0.16, 1, 0.3, 1] }}
+              >
+                {word}
+              </motion.span>
+            </span>
+          ))}
         </h2>
       )}
       {subtitle && (
-        <p className="font-sans text-[10px] md:text-sm uppercase tracking-[0.3em] text-black/70 font-medium mb-12 drop-shadow-[0_2px_10px_rgba(255,255,255,1)]">
+        <motion.p 
+          initial={{ opacity: 0, letterSpacing: "0.5em" }}
+          animate={{ opacity: progress.get() >= range[0] ? 0.7 : 0, letterSpacing: progress.get() >= range[0] ? "0.3em" : "0.5em" }}
+          transition={{ duration: 1.2, delay: 0.4 }}
+          className="font-sans text-[10px] md:text-sm uppercase text-black font-semibold mb-12 drop-shadow-[0_2px_10px_rgba(255,255,255,1)]"
+        >
           {subtitle}
-        </p>
+        </motion.p>
       )}
       
       {(primaryCTA || secondaryCTA) && (
-        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-center gap-0 mt-8 w-full max-w-2xl px-6 pointer-events-auto overflow-hidden rounded-xl shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] border border-black/5 bg-white/20 backdrop-blur-2xl">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-center gap-0 mt-8 w-full max-w-2xl mx-auto md:mx-0 pointer-events-auto overflow-hidden rounded-2xl shadow-[0_40px_80px_-20px_rgba(0,0,0,0.4)] border border-black/5 bg-white/30 backdrop-blur-3xl">
           {primaryCTA && (
             <motion.button 
               onClick={primaryCTA.onClick}
-              animate={{ 
-                boxShadow: ["0 0 0px rgba(0,0,0,0)", "0 0 30px rgba(0,0,0,0.2)", "0 0 0px rgba(0,0,0,0)"] 
-              }}
-              transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
-              className="group relative flex-1 px-8 md:px-12 py-6 bg-black text-white text-[10px] md:text-xs uppercase tracking-[0.25em] font-bold overflow-hidden transition-all duration-500 hover:bg-black/90 active:scale-[0.98]"
+              whileHover={{ backgroundColor: "rgba(0,0,0,0.9)" }}
+              whileTap={{ scale: 0.98 }}
+              className="group relative flex-1 px-10 md:px-14 py-7 bg-black text-white text-[11px] md:text-xs uppercase tracking-[0.3em] font-bold overflow-hidden transition-all duration-500"
             >
               <span className="relative z-10">{primaryCTA.label}</span>
               <motion.div 
-                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full"
+                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full"
                 animate={{ translateX: ["-100%", "100%"] }}
-                transition={{ repeat: Infinity, duration: 4, ease: "linear", delay: 1 }}
+                transition={{ repeat: Infinity, duration: 3, ease: "linear", delay: 1 }}
               />
             </motion.button>
           )}
@@ -438,9 +456,9 @@ function SectionOverlay({
             <motion.button 
               initial={{ width: 0, opacity: 0 }}
               animate={{ width: "auto", opacity: 1 }}
-              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
               onClick={secondaryCTA.onClick}
-              className="group flex-1 px-8 md:px-12 py-6 bg-white/10 hover:bg-white/40 text-black text-[10px] md:text-xs uppercase tracking-[0.25em] font-semibold whitespace-nowrap transition-all duration-500 border-l border-black/5 active:scale-[0.98]"
+              className="group flex-1 px-10 md:px-14 py-7 bg-white/20 hover:bg-white/50 text-black text-[11px] md:text-xs uppercase tracking-[0.3em] font-bold whitespace-nowrap transition-all duration-500 border-l border-black/5"
             >
               {secondaryCTA.label}
             </motion.button>

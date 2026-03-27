@@ -10,28 +10,29 @@ import {
   serverTimestamp,
   Timestamp,
 } from 'firebase/firestore';
-import {
-  ref,
-  uploadBytes,
-  getDownloadURL,
-  deleteObject,
-} from 'firebase/storage';
-import { db, storage } from '../firebase';
+import { db } from '../firebase';
+
+// ─── Cloudinary Config ────────────────────────────────────────────────────────
+const CLOUD_NAME = 'dvbgohxka';
+const UPLOAD_PRESET = 'moses_wire_arts';
 
 export interface Product {
   id: string;
   name: string;
   artist: string;
   price: number;
-  image: string;
+  image: string;       // Cloudinary URL
   category: string;
-  storagePath?: string; // Firebase Storage path for deletion
+  size?: string;
+  madeToOrder?: boolean;
+  isAvailable?: boolean;
+  storagePath?: string; // kept for type compat, unused with Cloudinary
   createdAt?: Timestamp;
 }
 
 const COLLECTION = 'products';
 
-// ─── READ ────────────────────────────────────────────────────────────────────
+// ─── READ ─────────────────────────────────────────────────────────────────────
 
 export async function fetchProducts(): Promise<Product[]> {
   const q = query(collection(db, COLLECTION), orderBy('createdAt', 'desc'));
@@ -39,62 +40,32 @@ export async function fetchProducts(): Promise<Product[]> {
   return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Product));
 }
 
-// ─── CREATE ──────────────────────────────────────────────────────────────────
+// ─── CLOUDINARY UPLOAD ────────────────────────────────────────────────────────
 
-export async function addProduct(
-  data: Omit<Product, 'id' | 'createdAt'>,
-  imageFile?: File
-): Promise<Product> {
-  let imageUrl = data.image;
-  let storagePath: string | undefined;
+async function uploadToCloudinary(file: File): Promise<string> {
+  // Compress image before uploading
+  const compressed = await compressImage(file);
 
-  if (imageFile) {
-    const result = await uploadProductImage(imageFile);
-    imageUrl = result.url;
-    storagePath = result.path;
+  const formData = new FormData();
+  formData.append('file', compressed);
+  formData.append('upload_preset', UPLOAD_PRESET);
+  formData.append('folder', 'moses_wire_arts');
+
+  const res = await fetch(
+    `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
+    { method: 'POST', body: formData }
+  );
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error?.message ?? 'Cloudinary upload failed');
   }
 
-  const docRef = await addDoc(collection(db, COLLECTION), {
-    ...data,
-    image: imageUrl,
-    storagePath: storagePath ?? null,
-    createdAt: serverTimestamp(),
-  });
-
-  return { id: docRef.id, ...data, image: imageUrl, storagePath };
+  const data = await res.json();
+  return data.secure_url as string;
 }
 
-// ─── UPDATE ──────────────────────────────────────────────────────────────────
-
-export async function updateProduct(
-  id: string,
-  data: Partial<Omit<Product, 'id' | 'createdAt'>>,
-  imageFile?: File,
-  oldStoragePath?: string
-): Promise<void> {
-  let updateData: Record<string, unknown> = { ...data };
-
-  if (imageFile) {
-    // Delete old image from Storage if it was uploaded there
-    if (oldStoragePath) {
-      await deleteStorageImage(oldStoragePath).catch(() => {});
-    }
-    const result = await uploadProductImage(imageFile);
-    updateData.image = result.url;
-    updateData.storagePath = result.path;
-  }
-
-  await updateDoc(doc(db, COLLECTION, id), updateData);
-}
-
-// ─── DELETE ──────────────────────────────────────────────────────────────────
-
-export async function deleteProduct(id: string, storagePath?: string): Promise<void> {
-  if (storagePath) {
-    await deleteStorageImage(storagePath).catch(() => {});
-  }
-  await deleteDoc(doc(db, COLLECTION, id));
-}
+// ─── IMAGE COMPRESSION ────────────────────────────────────────────────────────
 
 async function compressImage(file: File): Promise<Blob> {
   return new Promise((resolve) => {
@@ -103,59 +74,74 @@ async function compressImage(file: File): Promise<Blob> {
     img.onload = () => {
       URL.revokeObjectURL(url);
       const canvas = document.createElement('canvas');
-      const MAX_WIDTH = 1200;
-      const MAX_HEIGHT = 1200;
+      const MAX = 1200;
       let { width, height } = img;
 
       if (width > height) {
-        if (width > MAX_WIDTH) {
-          height = Math.round((height * MAX_WIDTH) / width);
-          width = MAX_WIDTH;
-        }
+        if (width > MAX) { height = Math.round((height * MAX) / width); width = MAX; }
       } else {
-        if (height > MAX_HEIGHT) {
-          width = Math.round((width * MAX_HEIGHT) / height);
-          height = MAX_HEIGHT;
-        }
+        if (height > MAX) { width = Math.round((width * MAX) / height); height = MAX; }
       }
 
       canvas.width = width;
       canvas.height = height;
       const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        resolve(file);
-        return;
-      }
+      if (!ctx) { resolve(file); return; }
       ctx.drawImage(img, 0, 0, width, height);
       canvas.toBlob(
-        (blob) => (blob ? resolve(blob) : resolve(file)),
+        (blob) => resolve(blob ?? file),
         'image/webp',
         0.85
       );
     };
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      resolve(file);
-    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
     img.src = url;
   });
 }
 
-async function uploadProductImage(file: File): Promise<{ url: string; path: string }> {
-  // Compress on the client side before uploading to save massive time and bandwidth
-  const compressedBlob = await compressImage(file);
-  
-  // Make sure to save as webp since we compress to webp
-  const newName = file.name.replace(/\.[^/.]+$/, "") + ".webp";
-  const path = `products/${Date.now()}_${newName.replace(/\s+/g, '_')}`;
-  const storageRef = ref(storage, path);
-  
-  await uploadBytes(storageRef, compressedBlob);
-  const url = await getDownloadURL(storageRef);
-  return { url, path };
+// ─── CREATE ───────────────────────────────────────────────────────────────────
+
+export async function addProduct(
+  data: Omit<Product, 'id' | 'createdAt'>,
+  imageFile?: File
+): Promise<Product> {
+  let imageUrl = data.image;
+
+  if (imageFile) {
+    imageUrl = await uploadToCloudinary(imageFile);
+  }
+
+  const docRef = await addDoc(collection(db, COLLECTION), {
+    ...data,
+    image: imageUrl,
+    storagePath: null, // no Firebase Storage path
+    createdAt: serverTimestamp(),
+  });
+
+  return { id: docRef.id, ...data, image: imageUrl };
 }
 
-async function deleteStorageImage(path: string): Promise<void> {
-  const storageRef = ref(storage, path);
-  await deleteObject(storageRef);
+// ─── UPDATE ───────────────────────────────────────────────────────────────────
+
+export async function updateProduct(
+  id: string,
+  data: Partial<Omit<Product, 'id' | 'createdAt'>>,
+  imageFile?: File,
+  _oldStoragePath?: string // ignored, no Firebase Storage
+): Promise<void> {
+  let updateData: Record<string, unknown> = { ...data };
+
+  if (imageFile) {
+    updateData.image = await uploadToCloudinary(imageFile);
+  }
+
+  await updateDoc(doc(db, COLLECTION, id), updateData);
+}
+
+// ─── DELETE ───────────────────────────────────────────────────────────────────
+
+export async function deleteProduct(id: string, _storagePath?: string): Promise<void> {
+  // Cloudinary deletion requires server-side signed API — skipping for now.
+  // Image stays in Cloudinary but document is removed from Firestore.
+  await deleteDoc(doc(db, COLLECTION, id));
 }
