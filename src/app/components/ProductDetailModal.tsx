@@ -61,7 +61,7 @@ export function ProductDetailModal({ product, isOpen, onClose, onAddToCart }: Pr
                       alt={product.name}
                       className="w-full h-full object-cover"
                     />
-                    <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs">
+                    <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-md px-4 py-1.5 text-[10px] uppercase tracking-[0.2em] font-medium text-black">
                       {product.category}
                     </div>
                   </div>
@@ -69,18 +69,15 @@ export function ProductDetailModal({ product, isOpen, onClose, onAddToCart }: Pr
                   {/* Details */}
                   <div className="p-8 md:p-12 flex flex-col">
                     <div className="flex-1">
-                      <h2 className="text-3xl md:text-4xl mb-3">{product.name}</h2>
-                      <p className="text-lg text-gray-600 mb-6">by {product.artist}</p>
-                      <p className="text-4xl mb-8">${product.price.toLocaleString()}</p>
+                      <h2 className="font-serif text-3xl md:text-5xl mb-2">{product.name}</h2>
+                      <p className="font-sans text-[10px] uppercase tracking-[0.2em] text-black/50 font-medium mb-6">by {product.artist}</p>
+                      <p className="font-serif text-3xl italic text-black/70 mb-8">${product.price.toLocaleString()}</p>
 
                       <div className="space-y-6 mb-8">
                         <div>
-                          <h3 className="text-sm uppercase tracking-wider mb-3">Description</h3>
-                          <p className="text-gray-600 leading-relaxed">
-                            A stunning handcrafted wire sculpture that exemplifies contemporary artistry.
-                            Each piece is meticulously crafted by Moises Ragay, combining traditional
-                            wire-working techniques with modern design sensibilities. This unique creation
-                            brings an elegant, artistic presence to any space.
+                          <h3 className="font-sans text-[10px] uppercase tracking-[0.2em] font-medium text-black mb-3">The Story</h3>
+                          <p className="text-gray-600 leading-relaxed font-sans text-sm md:text-base">
+                            Each piece is meticulously crafted over hundreds of hours, weaving raw metal wire into organic breathing forms. Made exclusively to order, this intricate study of nature's resilience brings an elegant, timeless artistic presence to any space.
                           </p>
                         </div>
 
@@ -121,21 +118,21 @@ export function ProductDetailModal({ product, isOpen, onClose, onAddToCart }: Pr
                     <div className="space-y-3">
                       <button
                         onClick={handleAddToCart}
-                        className="w-full bg-black text-white py-4 rounded-full hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
+                        className="w-full bg-black text-white py-5 text-xs uppercase tracking-[0.2em] font-medium hover:bg-black/80 transition-all duration-500 flex items-center justify-center gap-3"
                       >
-                        <ShoppingCart className="w-5 h-5" />
-                        Add to Cart
+                        <ShoppingCart className="w-4 h-4" />
+                        Reserve Your Piece
                       </button>
                       <button
                         onClick={() => setIsLiked(!isLiked)}
-                        className={`w-full border py-4 rounded-full transition-colors flex items-center justify-center gap-2 ${
+                        className={`w-full border py-5 text-xs uppercase tracking-[0.2em] font-medium transition-all duration-500 flex items-center justify-center gap-3 ${
                           isLiked
-                            ? 'border-red-500 text-red-500 bg-red-50'
-                            : 'border-black hover:bg-black hover:text-white'
+                            ? 'border-black text-black bg-black/5'
+                            : 'border-black/20 text-black hover:bg-black/5'
                         }`}
                       >
-                        <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
-                        {isLiked ? 'Saved to Wishlist' : 'Add to Wishlist'}
+                        <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
+                        {isLiked ? 'Saved' : 'Save Piece'}
                       </button>
                     </div>
                   </div>

@@ -4,46 +4,47 @@ import { useState } from 'react';
 interface HeaderProps {
   cartCount: number;
   onCartClick: () => void;
+  onLogoClick?: () => void;
 }
 
-export function Header({ cartCount, onCartClick }: HeaderProps) {
+export function Header({ cartCount, onCartClick, onLogoClick }: HeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-transparent py-4 transition-all duration-500">
+      <div className="w-full px-8 md:px-16">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
-          <div className="flex-shrink-0">
-            <h1 className="text-2xl tracking-tight">Moses Wire Arts</h1>
+          <div className="flex-shrink-0 cursor-pointer hover:opacity-70 transition-opacity" onClick={onLogoClick}>
+            <h1 className="font-serif text-2xl tracking-[0.2em] uppercase font-medium">Moses Wire Arts</h1>
           </div>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
-            <a href="#" className="text-sm hover:text-gray-600 transition-colors">Collections</a>
-            <a href="#" className="text-sm hover:text-gray-600 transition-colors">Featured</a>
-            <a href="#" className="text-sm hover:text-gray-600 transition-colors">Artists</a>
-            <a href="#" className="text-sm hover:text-gray-600 transition-colors">About</a>
+          <nav className="hidden md:flex items-center space-x-12">
+            <a href="#" className="text-xs uppercase tracking-[0.15em] font-medium hover:opacity-50 transition-opacity">Collections</a>
+            <a href="#" className="text-xs uppercase tracking-[0.15em] font-medium hover:opacity-50 transition-opacity">Featured</a>
+            <a href="#" className="text-xs uppercase tracking-[0.15em] font-medium hover:opacity-50 transition-opacity">Artists</a>
+            <a href="#" className="text-xs uppercase tracking-[0.15em] font-medium hover:opacity-50 transition-opacity">About</a>
           </nav>
 
           {/* Right side actions */}
-          <div className="flex items-center space-x-4">
-            <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-              <Search className="w-5 h-5" />
+          <div className="flex items-center space-x-6">
+            <button className="hover:opacity-50 transition-opacity">
+              <Search className="w-5 h-5 stroke-[1.5]" />
             </button>
             <button 
               onClick={onCartClick}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors relative"
+              className="hover:opacity-50 transition-opacity relative group"
             >
-              <ShoppingCart className="w-5 h-5" />
+              <ShoppingCart className="w-5 h-5 stroke-[1.5]" />
               {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-black text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+                <span className="absolute -top-1.5 -right-2 bg-black text-white text-[10px] uppercase font-bold w-4 h-4 rounded-full flex items-center justify-center">
                   {cartCount}
                 </span>
               )}
             </button>
             <button 
-              className="md:hidden p-2 hover:bg-gray-100 rounded-full transition-colors"
+              className="md:hidden hover:opacity-50 transition-opacity"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
             >
               <Menu className="w-5 h-5" />
@@ -53,12 +54,12 @@ export function Header({ cartCount, onCartClick }: HeaderProps) {
 
         {/* Mobile Navigation */}
         {isMenuOpen && (
-          <div className="md:hidden py-4 border-t border-gray-200">
-            <nav className="flex flex-col space-y-4">
-              <a href="#" className="text-sm hover:text-gray-600 transition-colors">Collections</a>
-              <a href="#" className="text-sm hover:text-gray-600 transition-colors">Featured</a>
-              <a href="#" className="text-sm hover:text-gray-600 transition-colors">Artists</a>
-              <a href="#" className="text-sm hover:text-gray-600 transition-colors">About</a>
+          <div className="md:hidden py-8 absolute top-full left-0 right-0 bg-white/95 backdrop-blur-md border-b border-gray-100 px-8 flex flex-col items-center">
+            <nav className="flex flex-col space-y-6 text-center">
+              <a href="#" className="text-sm uppercase tracking-[0.2em] hover:opacity-50 transition-opacity">Collections</a>
+              <a href="#" className="text-sm uppercase tracking-[0.2em] hover:opacity-50 transition-opacity">Featured</a>
+              <a href="#" className="text-sm uppercase tracking-[0.2em] hover:opacity-50 transition-opacity">Artists</a>
+              <a href="#" className="text-sm uppercase tracking-[0.2em] hover:opacity-50 transition-opacity">About</a>
             </nav>
           </div>
         )}

@@ -71,16 +71,16 @@ export function ProductCard({ product, onAddToCart, onProductClick }: ProductCar
         </motion.div>
 
         {/* Category badge */}
-        <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs">
+        <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-md px-4 py-1.5 text-[10px] uppercase tracking-[0.2em] font-medium text-black">
           {product.category}
         </div>
       </div>
 
       {/* Product info */}
-      <div>
-        <h3 className="text-lg mb-1">{product.name}</h3>
-        <p className="text-sm text-gray-600 mb-2">by {product.artist}</p>
-        <p className="text-xl">${product.price.toLocaleString()}</p>
+      <div className="text-center mt-6">
+        <h3 className="font-serif text-2xl tracking-wide mb-2">{product.name}</h3>
+        <p className="font-sans text-[10px] uppercase tracking-[0.2em] text-black/50 font-medium mb-3">by {product.artist}</p>
+        <p className="font-serif text-lg italic text-black/70">${product.price.toLocaleString()}</p>
       </div>
     </motion.div>
   );

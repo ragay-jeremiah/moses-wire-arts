@@ -1,15 +1,10 @@
 import { useState } from 'react';
 import { Header } from './components/Header';
 import { TreeScrollytelling } from './components/TreeScrollytelling';
-import { Hero } from './components/Hero';
-import { CategoryFilter } from './components/CategoryFilter';
-import { ProductGrid } from './components/ProductGrid';
-import { Footer } from './components/Footer';
 import { CartDrawer } from './components/CartDrawer';
 import { ProductDetailModal } from './components/ProductDetailModal';
-import { ArtistSection } from './components/ArtistSection';
-import { ScrollToTop } from './components/ScrollToTop';
 import { Product } from './components/ProductCard';
+import { ProductGrid } from './components/ProductGrid';
 
 interface CartItem extends Product {
   quantity: number;
@@ -84,6 +79,7 @@ const products: Product[] = [
 ];
 
 export default function App() {
+  const [currentView, setCurrentView] = useState<'landing' | 'shop'>('landing');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -135,30 +131,40 @@ export default function App() {
   const totalCartItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
-    <div className="min-h-screen bg-white text-black">
-      <Header cartCount={totalCartItems} onCartClick={() => setIsCartOpen(true)} />
-      
-      <main>
-        <TreeScrollytelling />
-        <Hero />
-        
-        <div className="py-20">
-          <CategoryFilter
-            selectedCategory={selectedCategory}
-            onCategoryChange={setSelectedCategory}
+    <div className="min-h-screen text-black bg-[#Fcfcfc]">
+      {currentView === 'landing' ? (
+        <main>
+          <TreeScrollytelling onNavigateToShop={() => {
+            window.scrollTo(0, 0);
+            setCurrentView('shop');
+          }} />
+        </main>
+      ) : (
+        <>
+          <Header 
+            cartCount={totalCartItems} 
+            onCartClick={() => setIsCartOpen(true)} 
+            onLogoClick={() => setCurrentView('landing')} 
           />
           
-          <ProductGrid
-            products={filteredProducts}
-            onAddToCart={handleAddToCart}
-            onProductClick={handleProductClick}
-          />
-        </div>
-
-        <ArtistSection />
-      </main>
-
-      <Footer />
+          <main className="pt-24">
+            {/* Made to Order Shop Section */}
+            <section id="shop-section" className="py-20 px-6 md:px-16 max-w-[1400px] mx-auto min-h-screen">
+              <div className="max-w-3xl mx-auto text-center mb-24">
+                <h3 className="font-serif text-4xl md:text-5xl tracking-tight mb-8">
+                  The Anatomy of Time.
+                </h3>
+                <p className="font-sans text-sm md:text-base leading-relaxed text-black/70 mb-12">
+                  We don't manufacture products; we cultivate heirlooms. Each Moses Wire Arts sculpture is grown by hand, weaving miles of raw metal thread into breathing, organic forms over hundreds of hours. Exclusively made-to-order, your piece is a singular study of nature's resilience. Claim a fragment of eternity for your space.
+                </p>
+                <div className="w-px h-24 bg-black/20 mx-auto"></div>
+              </div>
+              
+              <ProductGrid products={filteredProducts} onProductClick={handleProductClick} onAddToCart={handleAddToCart} />
+            </section>
+          </main>
+        </>
+      )}
 
       {/* Modals and Drawers */}
       <CartDrawer
@@ -175,8 +181,6 @@ export default function App() {
         onClose={() => setIsProductModalOpen(false)}
         onAddToCart={handleAddToCart}
       />
-
-      <ScrollToTop />
     </div>
   );
 }
