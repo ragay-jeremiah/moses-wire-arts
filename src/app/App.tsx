@@ -59,6 +59,55 @@ export default function App() {
     return () => window.removeEventListener('keydown', handler);
   }, [keyBuffer, adminUser]);
 
+  // ─── Mobile Admin Login Methods ───────────────────────────────────────────
+  // 1. Secret URL parameter `?admin=login`
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('admin') === 'login') {
+      if (adminUser) {
+        setShowAdminPanel(true);
+      } else {
+        setShowAdminLogin(true);
+      }
+      const url = new URL(window.location.href);
+      url.searchParams.delete('admin');
+      window.history.replaceState({}, '', url);
+    }
+  }, [adminUser]);
+
+  // 2. Secret Tap Zone: Tap bottom-left corner 5 times rapidly
+  const [tapCount, setTapCount] = useState(0);
+  useEffect(() => {
+    let timeout: ReturnType<typeof setTimeout>;
+    
+    const handler = (e: TouchEvent) => {
+      const touch = e.touches[0];
+      // Bottom-left corner hit area (80x80 pixels)
+      if (touch.clientX < 80 && touch.clientY > window.innerHeight - 80) {
+        setTapCount(prev => {
+          const next = prev + 1;
+          if (next >= 5) {
+            if (adminUser) setShowAdminPanel(true);
+            else setShowAdminLogin(true);
+            return 0;
+          }
+          return next;
+        });
+        
+        clearTimeout(timeout);
+        timeout = setTimeout(() => setTapCount(0), 1500);
+      } else {
+        setTapCount(0);
+      }
+    };
+    
+    window.addEventListener('touchstart', handler);
+    return () => {
+      window.removeEventListener('touchstart', handler);
+      clearTimeout(timeout);
+    };
+  }, [adminUser]);
+
   // ─── Products (Firestore) ─────────────────────────────────────────────────
   const [products, setProducts] = useState<Product[]>([]);
   const [productsLoaded, setProductsLoaded] = useState(false);
