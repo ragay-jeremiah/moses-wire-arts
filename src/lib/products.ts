@@ -96,12 +96,61 @@ export async function deleteProduct(id: string, storagePath?: string): Promise<v
   await deleteDoc(doc(db, COLLECTION, id));
 }
 
-// ─── STORAGE HELPERS ─────────────────────────────────────────────────────────
+async function compressImage(file: File): Promise<Blob> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const canvas = document.createElement('canvas');
+      const MAX_WIDTH = 1200;
+      const MAX_HEIGHT = 1200;
+      let { width, height } = img;
+
+      if (width > height) {
+        if (width > MAX_WIDTH) {
+          height = Math.round((height * MAX_WIDTH) / width);
+          width = MAX_WIDTH;
+        }
+      } else {
+        if (height > MAX_HEIGHT) {
+          width = Math.round((width * MAX_HEIGHT) / height);
+          height = MAX_HEIGHT;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        resolve(file);
+        return;
+      }
+      ctx.drawImage(img, 0, 0, width, height);
+      canvas.toBlob(
+        (blob) => (blob ? resolve(blob) : resolve(file)),
+        'image/webp',
+        0.85
+      );
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(file);
+    };
+    img.src = url;
+  });
+}
 
 async function uploadProductImage(file: File): Promise<{ url: string; path: string }> {
-  const path = `products/${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
+  // Compress on the client side before uploading to save massive time and bandwidth
+  const compressedBlob = await compressImage(file);
+  
+  // Make sure to save as webp since we compress to webp
+  const newName = file.name.replace(/\.[^/.]+$/, "") + ".webp";
+  const path = `products/${Date.now()}_${newName.replace(/\s+/g, '_')}`;
   const storageRef = ref(storage, path);
-  await uploadBytes(storageRef, file);
+  
+  await uploadBytes(storageRef, compressedBlob);
   const url = await getDownloadURL(storageRef);
   return { url, path };
 }
