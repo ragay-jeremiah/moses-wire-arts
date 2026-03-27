@@ -10,6 +10,35 @@ import { ProductGrid } from './components/ProductGrid';
 import { AdminLogin } from './components/admin/AdminLogin';
 import { AdminPanel } from './components/admin/AdminPanel';
 import { fetchProducts } from '../lib/products';
+import { CircularGallery, GalleryItem } from '../components/ui/circular-gallery';
+
+const FAKE_GALLERY_DATA: GalleryItem[] = [
+  {
+    common: 'Lion',
+    binomial: 'Panthera leo',
+    photo: { url: 'https://images.unsplash.com/photo-1583499871880-de841d1ace2a?w=900&auto=format&fit=crop&q=80', text: 'lion', by: 'Clément Roy' }
+  },
+  {
+    common: 'Asiatic elephant',
+    binomial: 'Elephas maximus',
+    photo: { url: 'https://images.unsplash.com/photo-1571406761758-9a3eed5338ef?w=900&auto=format&fit=crop&q=80', text: 'elephant', by: 'Alex Azabache' }
+  },
+  {
+    common: 'Giant panda',
+    binomial: 'Ailuropoda melanoleuca',
+    photo: { url: 'https://images.unsplash.com/photo-1659540181281-1d89d6112832?w=900&auto=format&fit=crop&q=80', text: 'panda', by: 'Jiachen Lin' }
+  },
+  {
+    common: 'Polar bear',
+    binomial: 'Ursus maritimus',
+    photo: { url: 'https://images.unsplash.com/photo-1589648751789-c8ecb7a88bd5?w=900&auto=format&fit=crop&q=80', text: 'polar bear', by: 'Hans-Jurgen Mager' }
+  },
+  {
+    common: 'Cheetah',
+    binomial: 'Acinonyx jubatus',
+    photo: { url: 'https://images.unsplash.com/photo-1541707519942-08fd2f6480ba?w=900&auto=format&fit=crop&q=80', text: 'cheetah', by: 'Mike Bird' }
+  }
+];
 
 // Firestore Product type maps 1-to-1 with the existing Product interface
 // so no re-typing needed.
@@ -189,9 +218,10 @@ export default function App() {
             onAdminClick={() => setShowAdminPanel(true)}
           />
 
-          <main className="pt-24">
-            <section id="shop-section" className="py-20 px-6 md:px-16 max-w-[1400px] mx-auto min-h-screen">
-              <div className="max-w-3xl mx-auto text-center mb-24">
+          <main>
+            {/* Intro text */}
+            <section id="shop-section" className="py-20 px-6 md:px-16 max-w-[1400px] mx-auto pt-32">
+              <div className="max-w-3xl mx-auto text-center mb-16">
                 <h3 className="font-serif text-4xl md:text-5xl tracking-tight mb-8">
                   The Anatomy of Time.
                 </h3>
@@ -200,31 +230,45 @@ export default function App() {
                 </p>
                 <div className="w-px h-24 bg-black/20 mx-auto"></div>
               </div>
-
-              {!productsLoaded ? (
-                <div className="flex items-center justify-center py-32 text-black/30">
-                  <p className="text-sm uppercase tracking-[0.3em]">Loading collection…</p>
-                </div>
-              ) : products.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-32 text-black/30 text-center">
-                  <p className="text-sm uppercase tracking-[0.3em] mb-4">No products available yet.</p>
-                  {adminUser && (
-                    <button
-                      onClick={() => setShowAdminPanel(true)}
-                      className="text-xs uppercase tracking-[0.2em] underline underline-offset-4 hover:opacity-60 transition-opacity"
-                    >
-                      Add products in Admin Panel
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <ProductGrid
-                  products={filteredProducts}
-                  onProductClick={handleProductClick}
-                  onAddToCart={handleAddToCart}
-                />
-              )}
             </section>
+
+            {/* Circular Gallery Section */}
+            {!productsLoaded ? (
+              <div className="flex items-center justify-center py-32 text-black/30">
+                <p className="text-sm uppercase tracking-[0.3em]">Loading collection…</p>
+              </div>
+            ) : (
+              <div className="w-full bg-[#Fcfcfc] text-black" style={{ height: '300vh' }}>
+                <div className="w-full h-screen sticky top-0 flex flex-col items-center justify-center overflow-hidden">
+                  <div className="text-center mb-8 absolute top-24 z-10 pointer-events-none">
+                    <p className="text-xs uppercase tracking-[0.3em] text-black/50">Scroll to rotate</p>
+                  </div>
+                  <div className="w-full h-full">
+                    <CircularGallery 
+                      items={
+                        products.length > 0 
+                          ? filteredProducts.map(p => ({
+                              id: p.id,
+                              common: p.name,
+                              binomial: `$${p.price.toLocaleString()}`,
+                              photo: { url: p.image, text: p.name, by: p.artist }
+                            }))
+                          : FAKE_GALLERY_DATA
+                      } 
+                      onItemClick={(item) => {
+                        if (item.id) {
+                          const product = products.find(p => p.id === item.id);
+                          if (product) handleProductClick(product);
+                        } else if (adminUser) {
+                           // If clicking a fake item and admin, show panel to encourage adding real ones
+                           setShowAdminPanel(true);
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
           </main>
         </>
       )}
