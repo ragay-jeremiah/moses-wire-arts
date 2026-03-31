@@ -23,6 +23,11 @@ export interface Product {
   price: number;
   image: string;       // Cloudinary URL
   category: string;
+  description?: string;
+  dimensions?: string;
+  materials?: string;
+  authenticity?: string;
+  shipping?: string;
   size?: string;
   madeToOrder?: boolean;
   isAvailable?: boolean;

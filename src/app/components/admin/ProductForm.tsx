@@ -17,6 +17,11 @@ const EMPTY_FORM = {
   price: '',
   category: 'Abstract',
   image: '',
+  description: '',
+  dimensions: 'Custom sized',
+  materials: 'Premium wire',
+  authenticity: 'Certified original',
+  shipping: 'Free worldwide',
 };
 
 export function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
@@ -27,6 +32,11 @@ export function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
     price: product?.price?.toString() ?? EMPTY_FORM.price,
     category: product?.category ?? EMPTY_FORM.category,
     image: product?.image ?? EMPTY_FORM.image,
+    description: product?.description ?? EMPTY_FORM.description,
+    dimensions: product?.dimensions ?? EMPTY_FORM.dimensions,
+    materials: product?.materials ?? EMPTY_FORM.materials,
+    authenticity: product?.authenticity ?? EMPTY_FORM.authenticity,
+    shipping: product?.shipping ?? EMPTY_FORM.shipping,
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>(product?.image ?? '');
@@ -59,6 +69,11 @@ export function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
         price: Number(form.price),
         category: form.category,
         image: form.image.trim(),
+        description: form.description.trim(),
+        dimensions: form.dimensions.trim(),
+        materials: form.materials.trim(),
+        authenticity: form.authenticity.trim(),
+        shipping: form.shipping.trim(),
         storagePath: product?.storagePath,
       };
 
@@ -99,7 +114,8 @@ export function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
             </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="p-8 grid md:grid-cols-2 gap-6">
+          <form onSubmit={handleSubmit} className="p-8 max-h-[70vh] overflow-y-auto">
+            <div className="grid md:grid-cols-2 gap-6">
             {/* Left — Image Upload */}
             <div className="flex flex-col gap-4">
               <label className="block text-[10px] uppercase tracking-[0.2em] font-medium text-black/50">
@@ -156,7 +172,7 @@ export function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
               </div>
             </div>
 
-            {/* Right — Fields */}
+            {/* Right — Core Fields */}
             <div className="flex flex-col gap-4">
               {/* Name */}
               <div>
@@ -187,60 +203,127 @@ export function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
                 />
               </div>
 
-              {/* Price */}
+              {/* Price + Category row */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] uppercase tracking-[0.2em] font-medium text-black/50 mb-2">
+                    Price (USD) *
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min={1}
+                    value={form.price}
+                    onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
+                    placeholder="e.g. 2450"
+                    className="w-full border border-black/15 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-black/50 transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] uppercase tracking-[0.2em] font-medium text-black/50 mb-2">
+                    Category
+                  </label>
+                  <select
+                    value={form.category}
+                    onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+                    className="w-full border border-black/15 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-black/50 transition-colors bg-white"
+                  >
+                    {CATEGORIES.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Description */}
               <div>
                 <label className="block text-[10px] uppercase tracking-[0.2em] font-medium text-black/50 mb-2">
-                  Price (USD) *
+                  Description / Story
+                </label>
+                <textarea
+                  value={form.description}
+                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                  placeholder="Each piece is meticulously crafted over hundreds of hours..."
+                  rows={3}
+                  className="w-full border border-black/15 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-black/50 transition-colors resize-none"
+                />
+              </div>
+            </div>
+            </div>
+
+            {/* Bottom — Detail Fields (full width) */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6 pt-6 border-t border-black/10">
+              <div>
+                <label className="block text-[10px] uppercase tracking-[0.2em] font-medium text-black/50 mb-2">
+                  Dimensions
                 </label>
                 <input
-                  type="number"
-                  required
-                  min={1}
-                  value={form.price}
-                  onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
-                  placeholder="e.g. 2450"
+                  type="text"
+                  value={form.dimensions}
+                  onChange={(e) => setForm((f) => ({ ...f, dimensions: e.target.value }))}
+                  placeholder="Custom sized"
                   className="w-full border border-black/15 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-black/50 transition-colors"
                 />
               </div>
-
-              {/* Category */}
               <div>
                 <label className="block text-[10px] uppercase tracking-[0.2em] font-medium text-black/50 mb-2">
-                  Category
+                  Materials
                 </label>
-                <select
-                  value={form.category}
-                  onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-                  className="w-full border border-black/15 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-black/50 transition-colors bg-white"
-                >
-                  {CATEGORIES.map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
+                <input
+                  type="text"
+                  value={form.materials}
+                  onChange={(e) => setForm((f) => ({ ...f, materials: e.target.value }))}
+                  placeholder="Premium wire"
+                  className="w-full border border-black/15 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-black/50 transition-colors"
+                />
               </div>
-
-              {error && (
-                <p className="text-red-500 text-xs">{error}</p>
-              )}
-
-              {/* Actions */}
-              <div className="flex gap-3 mt-auto pt-4">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="flex-1 border border-black/20 rounded-lg py-3 text-xs uppercase tracking-[0.2em] hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-1 bg-black text-white rounded-lg py-3 text-xs uppercase tracking-[0.2em] hover:bg-black/80 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {loading && <Loader2 className="w-3 h-3 animate-spin" />}
-                  {loading ? 'Saving…' : isEditing ? 'Save Changes' : 'Add Product'}
-                </button>
+              <div>
+                <label className="block text-[10px] uppercase tracking-[0.2em] font-medium text-black/50 mb-2">
+                  Authenticity
+                </label>
+                <input
+                  type="text"
+                  value={form.authenticity}
+                  onChange={(e) => setForm((f) => ({ ...f, authenticity: e.target.value }))}
+                  placeholder="Certified original"
+                  className="w-full border border-black/15 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-black/50 transition-colors"
+                />
               </div>
+              <div>
+                <label className="block text-[10px] uppercase tracking-[0.2em] font-medium text-black/50 mb-2">
+                  Shipping
+                </label>
+                <input
+                  type="text"
+                  value={form.shipping}
+                  onChange={(e) => setForm((f) => ({ ...f, shipping: e.target.value }))}
+                  placeholder="Free worldwide"
+                  className="w-full border border-black/15 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-black/50 transition-colors"
+                />
+              </div>
+            </div>
+
+            {error && (
+              <p className="text-red-500 text-xs mt-4">{error}</p>
+            )}
+
+            {/* Actions */}
+            <div className="flex gap-3 mt-6 pt-6 border-t border-black/10">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 border border-black/20 rounded-lg py-3 text-xs uppercase tracking-[0.2em] hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex-1 bg-black text-white rounded-lg py-3 text-xs uppercase tracking-[0.2em] hover:bg-black/80 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {loading && <Loader2 className="w-3 h-3 animate-spin" />}
+                {loading ? 'Saving…' : isEditing ? 'Save Changes' : 'Add Product'}
+              </button>
             </div>
           </form>
         </motion.div>

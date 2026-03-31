@@ -77,7 +77,7 @@ export function ProductDetailModal({ product, isOpen, onClose, onAddToCart }: Pr
                         <div>
                           <h3 className="font-sans text-[10px] uppercase tracking-[0.2em] font-medium text-black mb-3">The Story</h3>
                           <p className="text-gray-600 leading-relaxed font-sans text-sm md:text-base">
-                            Each piece is meticulously crafted over hundreds of hours, weaving raw metal wire into organic breathing forms. Made exclusively to order, this intricate study of nature's resilience brings an elegant, timeless artistic presence to any space.
+                            {product.description || 'Each piece is meticulously crafted over hundreds of hours, weaving raw metal wire into organic breathing forms. Made exclusively to order, this intricate study of nature\'s resilience brings an elegant, timeless artistic presence to any space.'}
                           </p>
                         </div>
 
@@ -86,28 +86,28 @@ export function ProductDetailModal({ product, isOpen, onClose, onAddToCart }: Pr
                             <Ruler className="w-5 h-5 text-gray-400 mt-1" />
                             <div>
                               <p className="text-sm font-medium">Dimensions</p>
-                              <p className="text-sm text-gray-600">Custom sized</p>
+                              <p className="text-sm text-gray-600">{product.dimensions || 'Custom sized'}</p>
                             </div>
                           </div>
                           <div className="flex items-start gap-3">
                             <Package className="w-5 h-5 text-gray-400 mt-1" />
                             <div>
                               <p className="text-sm font-medium">Materials</p>
-                              <p className="text-sm text-gray-600">Premium wire</p>
+                              <p className="text-sm text-gray-600">{product.materials || 'Premium wire'}</p>
                             </div>
                           </div>
                           <div className="flex items-start gap-3">
                             <Shield className="w-5 h-5 text-gray-400 mt-1" />
                             <div>
                               <p className="text-sm font-medium">Authenticity</p>
-                              <p className="text-sm text-gray-600">Certified original</p>
+                              <p className="text-sm text-gray-600">{product.authenticity || 'Certified original'}</p>
                             </div>
                           </div>
                           <div className="flex items-start gap-3">
                             <Package className="w-5 h-5 text-gray-400 mt-1" />
                             <div>
                               <p className="text-sm font-medium">Shipping</p>
-                              <p className="text-sm text-gray-600">Free worldwide</p>
+                              <p className="text-sm text-gray-600">{product.shipping || 'Free worldwide'}</p>
                             </div>
                           </div>
                         </div>

@@ -10,6 +10,15 @@ export interface Product {
   price: number;
   image: string;
   category: string;
+  description?: string;
+  dimensions?: string;
+  materials?: string;
+  authenticity?: string;
+  shipping?: string;
+  size?: string;
+  madeToOrder?: boolean;
+  isAvailable?: boolean;
+  storagePath?: string;
 }
 
 interface ProductCardProps {
