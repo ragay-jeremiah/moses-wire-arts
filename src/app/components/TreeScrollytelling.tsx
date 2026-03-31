@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { motion, useScroll, useTransform, AnimatePresence, useSpring } from 'motion/react';
-import '../styles/vignette.css';
+import '../../styles/vignette.css';
 
 interface TreeScrollytellingProps {
   totalPages?: number;
