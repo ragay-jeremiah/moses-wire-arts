@@ -1,8 +1,13 @@
 import { useState, useEffect } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth } from '../firebase';
+import { Toaster, toast } from 'react-hot-toast';
+import { MessageCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Header } from './components/Header';
-import { TreeScrollytelling } from './components/TreeScrollytelling';
+import { HeroVideo } from './components/HeroVideo';
+import { ArtistSection } from './components/ArtistSection';
+import { Footer } from './components/Footer';
 import { CartDrawer } from './components/CartDrawer';
 import { ProductDetailModal } from './components/ProductDetailModal';
 import { Product } from './components/ProductCard';
@@ -176,6 +181,7 @@ export default function App() {
     } else {
       setCartItems([...cartItems, { ...product, quantity: 1 }]);
     }
+    toast.success(`${product.name} added to reservation.`);
   };
 
   const handleUpdateQuantity = (id: string, quantity: number) => {
@@ -200,78 +206,135 @@ export default function App() {
   const totalCartItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
-    <div className="min-h-screen text-black bg-[#Fcfcfc]">
-      {currentView === 'landing' ? (
-        <main>
-          <TreeScrollytelling onNavigateToShop={() => {
-            window.scrollTo(0, 0);
-            setCurrentView('shop');
-          }} />
-        </main>
-      ) : (
-        <>
-          <Header
-            cartCount={totalCartItems}
-            onCartClick={() => setIsCartOpen(true)}
-            onLogoClick={() => setCurrentView('landing')}
-            isAdmin={!!adminUser}
-            onAdminClick={() => setShowAdminPanel(true)}
+    <div className="min-h-screen text-white bg-black font-sans">
+      <Toaster 
+        position="bottom-center" 
+        toastOptions={{ 
+          style: { 
+            background: '#111', 
+            color: '#fff', 
+            fontSize: '12px', 
+            border: '1px solid rgba(255,255,255,0.1)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.1em'
+          } 
+        }} 
+      />
+      
+      <Header
+        cartCount={totalCartItems}
+        onCartClick={() => setIsCartOpen(true)}
+        onLogoClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        isAdmin={!!adminUser}
+        onAdminClick={() => setShowAdminPanel(true)}
+      />
+
+      <main>
+        <HeroVideo onNavigateToShop={() => {
+          document.getElementById('shop-section')?.scrollIntoView({ behavior: 'smooth' });
+        }} />
+
+        {/* Intro text */}
+        <section id="shop-section" className="py-24 px-6 md:px-16 max-w-[1400px] mx-auto pt-32 relative z-10">
+          <div className="max-w-3xl mx-auto text-center mb-16">
+            <h3 className="font-serif text-4xl md:text-5xl tracking-tight mb-8 text-white">
+              The Anatomy of Time.
+            </h3>
+            <p className="font-sans text-sm md:text-base leading-relaxed text-white/70 mb-12">
+              We don't manufacture products; we cultivate heirlooms. Each Moses Wire Arts sculpture is grown by hand, weaving miles of raw metal thread into breathing, organic forms over hundreds of hours. Exclusively made-to-order, your piece is a singular study of nature's resilience. Claim a fragment of eternity for your space.
+            </p>
+            <div className="flex justify-center gap-6 mb-12">
+              <a 
+                href="https://m.me/MosesRagay"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-8 py-4 bg-white/5 border border-white/10 text-white text-[10px] uppercase tracking-[0.3em] font-medium hover:bg-white/10 transition-colors rounded-full"
+              >
+                Inquire via Messenger
+              </a>
+            </div>
+            <div className="w-px h-24 bg-white/20 mx-auto"></div>
+          </div>
+        </section>
+
+        {/* Artist Section */}
+        <ArtistSection />
+
+        {/* Featured Gallery Section */}
+        <div id="featured" className="w-full bg-black text-white" style={{ height: '300vh' }}>
+          <div className="w-full h-screen sticky top-0 flex flex-col items-center justify-center overflow-hidden">
+            <div className="text-center mb-8 absolute top-24 z-10 pointer-events-none">
+              <p className="text-[10px] uppercase tracking-[0.4em] text-white/30">Scroll to Explore Mastery</p>
+            </div>
+            <div className="w-full h-full">
+              <CircularGallery 
+                items={
+                  products.length > 0 
+                    ? filteredProducts.map(p => ({
+                        id: p.id,
+                        common: p.name,
+                        binomial: `$${p.price.toLocaleString()}`,
+                        photo: { url: p.image, text: p.name, by: p.artist }
+                      }))
+                    : FAKE_GALLERY_DATA
+                } 
+                onItemClick={(item) => {
+                  if (item.id) {
+                    const product = products.find(p => p.id === item.id);
+                    if (product) handleProductClick(product);
+                  } else if (adminUser) {
+                     setShowAdminPanel(true);
+                  }
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Full Collection Section */}
+        <section id="collections" className="py-24 md:py-32 px-6 md:px-16 max-w-[1400px] mx-auto relative z-10">
+          <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-8">
+            <div className="max-w-xl">
+              <p className="text-[10px] tracking-[0.4em] text-white/40 uppercase mb-4">Complete Series</p>
+              <h2 className="text-4xl md:text-6xl font-serif text-white tracking-tight">The Modern Gallery</h2>
+            </div>
+          </div>
+          
+          <ProductGrid 
+            products={filteredProducts}
+            onAddToCart={handleAddToCart}
+            onProductClick={handleProductClick}
           />
+        </section>
 
-          <main>
-            {/* Intro text */}
-            <section id="shop-section" className="py-20 px-6 md:px-16 max-w-[1400px] mx-auto pt-32">
-              <div className="max-w-3xl mx-auto text-center mb-16">
-                <h3 className="font-serif text-4xl md:text-5xl tracking-tight mb-8">
-                  The Anatomy of Time.
-                </h3>
-                <p className="font-sans text-sm md:text-base leading-relaxed text-black/70 mb-12">
-                  We don't manufacture products; we cultivate heirlooms. Each Moses Wire Arts sculpture is grown by hand, weaving miles of raw metal thread into breathing, organic forms over hundreds of hours. Exclusively made-to-order, your piece is a singular study of nature's resilience. Claim a fragment of eternity for your space.
-                </p>
-                <div className="w-px h-24 bg-black/20 mx-auto"></div>
-              </div>
-            </section>
+        {/* Production CTA Section */}
+        <section className="py-32 px-6 md:px-16 border-t border-white/5 bg-[#050505]">
+          <div className="max-w-4xl mx-auto text-center">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 1 }}
+            >
+              <h2 className="font-serif text-4xl md:text-7xl mb-8 text-white leading-tight">Bring Moises' artistry <br/>to your sanctuary.</h2>
+              <p className="text-white/50 text-sm md:text-lg mb-12 max-w-2xl mx-auto leading-relaxed font-sans">
+                Every sculpture is a unique journey. For custom commissions, worldwide shipping inquiries, or private viewings, reach out directly.
+              </p>
+              <a 
+                href="https://m.me/MosesRagay"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-4 px-12 py-6 bg-white text-black text-xs uppercase tracking-[0.2em] font-bold hover:bg-zinc-200 transition-all rounded-full transform hover:scale-105 shadow-[0_0_50px_rgba(255,255,255,0.1)]"
+              >
+                <MessageCircle size={18} />
+                Start Inquiring Now
+              </a>
+            </motion.div>
+          </div>
+        </section>
+      </main>
 
-            {/* Circular Gallery Section */}
-            {!productsLoaded ? (
-              <div className="flex items-center justify-center py-32 text-black/30">
-                <p className="text-sm uppercase tracking-[0.3em]">Loading collection…</p>
-              </div>
-            ) : (
-              <div className="w-full bg-[#Fcfcfc] text-black" style={{ height: '300vh' }}>
-                <div className="w-full h-screen sticky top-0 flex flex-col items-center justify-center overflow-hidden">
-                  <div className="text-center mb-8 absolute top-24 z-10 pointer-events-none">
-                    <p className="text-xs uppercase tracking-[0.3em] text-black/50">Scroll to rotate</p>
-                  </div>
-                  <div className="w-full h-full">
-                    <CircularGallery 
-                      items={
-                        products.length > 0 
-                          ? filteredProducts.map(p => ({
-                              id: p.id,
-                              common: p.name,
-                              binomial: `$${p.price.toLocaleString()}`,
-                              photo: { url: p.image, text: p.name, by: p.artist }
-                            }))
-                          : FAKE_GALLERY_DATA
-                      } 
-                      onItemClick={(item) => {
-                        if (item.id) {
-                          const product = products.find(p => p.id === item.id);
-                          if (product) handleProductClick(product);
-                        } else if (adminUser) {
-                           // If clicking a fake item and admin, show panel to encourage adding real ones
-                           setShowAdminPanel(true);
-                        }
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-          </main>
-        </>
-      )}
+      <Footer />
 
       {/* ─── Cart & Product Modal ──────────────────────────────────────── */}
       <CartDrawer

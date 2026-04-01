@@ -123,17 +123,17 @@ const CircularGallery = React.forwardRef<HTMLDivElement, CircularGalleryProps>(
                   transition: 'opacity 0.3s linear'
                 }}
               >
-                <div className="relative w-full h-full rounded-lg shadow-2xl overflow-hidden group border border-black/10 bg-white/70 backdrop-blur-lg hover:scale-[1.02] transition-transform duration-300">
+                <div className="relative w-full h-full rounded-lg shadow-2xl overflow-hidden group border border-white/10 bg-black/70 backdrop-blur-lg hover:scale-[1.02] transition-transform duration-300">
                   <img
                     src={item.photo.url}
                     alt={item.photo.text}
                     className="absolute inset-0 w-full h-full object-cover"
                     style={{ objectPosition: item.photo.pos || 'center' }}
                   />
-                  <div className="absolute bottom-0 left-0 w-full p-4 bg-gradient-to-t from-black/90 to-transparent text-white opacity-100 group-hover:opacity-100 transition-opacity">
+                  <div className="absolute bottom-0 left-0 w-full p-4 bg-gradient-to-t from-black/90 via-black/50 to-transparent text-white opacity-100 group-hover:opacity-100 transition-opacity">
                     <h2 className="text-xl font-serif font-bold tracking-wide">{item.common}</h2>
-                    <em className="text-sm not-italic uppercase tracking-[0.2em] opacity-80 mt-1 block">{item.binomial}</em>
-                    <p className="text-[10px] uppercase tracking-widest mt-2 opacity-60">Piece by: {item.photo.by}</p>
+                    <em className="text-sm not-italic uppercase tracking-[0.2em] text-white/80 mt-1 block">{item.binomial}</em>
+                    <p className="text-[10px] uppercase tracking-widest mt-2 text-white/50">Piece by: {item.photo.by}</p>
                   </div>
                 </div>
               </div>

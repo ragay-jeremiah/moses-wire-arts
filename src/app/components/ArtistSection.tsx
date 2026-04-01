@@ -1,81 +1,119 @@
+import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { Award, Palette, Heart } from 'lucide-react';
+import { Instagram, Facebook, MessageCircle } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
+import { fetchSettings } from '../../lib/settings';
+
+const DEFAULT_ARTIST_IMAGE = "https://images.unsplash.com/photo-1731850040444-5194b805f2b6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxnZW9tZXRyaWMlMjB3aXJlJTIwYXJ0JTIwZGVzaWdufGVufDF8fHx8MTc3NDE3NjE2MHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral";
 
 export function ArtistSection() {
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadSettings() {
+      const settings = await fetchSettings();
+      if (settings?.artistImageUrl) {
+        setImageUrl(settings.artistImageUrl);
+      }
+    }
+    loadSettings();
+
+    const handleUpdate = (e: any) => {
+      setImageUrl(e.detail);
+    };
+
+    window.addEventListener('artistImageUpdated', handleUpdate);
+    return () => window.removeEventListener('artistImageUpdated', handleUpdate);
+  }, []);
+
   return (
-    <section id="artist" className="py-16 md:py-24 bg-gray-50 scroll-mt-16 md:scroll-mt-20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid md:grid-cols-2 gap-8 md:gap-16 items-center">
+    <section id="artist" className="py-24 md:py-32 bg-black scroll-mt-20 relative overflow-hidden">
+      {/* Background Decor */}
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-white/5 blur-[120px] rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+      
+      <div className="max-w-7xl mx-auto px-6 md:px-16 relative z-10">
+        <div className="grid lg:grid-cols-2 gap-16 md:gap-24 items-center">
           {/* Artist Image */}
           <motion.div
-            initial={{ opacity: 0, x: -30 }}
-            whileInView={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
-            className="relative order-2 md:order-1"
+            transition={{ duration: 1.2, ease: "easeOut" }}
+            className="relative order-2 lg:order-1"
           >
-            <div className="relative rounded-3xl overflow-hidden shadow-2xl">
+            <div className="relative rounded-2xl overflow-hidden border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] bg-zinc-900">
               <ImageWithFallback
-                src="https://images.unsplash.com/photo-1731850040444-5194b805f2b6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxnZW9tZXRyaWMlMjB3aXJlJTIwYXJ0JTIwZGVzaWdufGVufDF8fHx8MTc3NDE3NjE2MHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
+                src={imageUrl || DEFAULT_ARTIST_IMAGE}
                 alt="Moises Ragay - Wire Artist"
-                className="w-full h-[400px] md:h-[600px] object-cover"
+                className="w-full h-[500px] md:h-[700px] object-cover grayscale opacity-80 hover:grayscale-0 hover:opacity-100 transition-all duration-700"
                 loading="lazy"
               />
             </div>
-            <div className="absolute -bottom-6 -right-6 bg-white p-6 md:p-8 rounded-2xl shadow-xl max-w-[200px] md:max-w-xs">
-              <p className="text-3xl md:text-4xl mb-1">15+</p>
-              <p className="text-sm text-gray-600">Years of Experience</p>
-            </div>
+            {/* Experience Badge */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.5 }}
+              className="absolute -bottom-10 -right-4 md:-right-10 bg-[#111]/80 backdrop-blur-xl border border-white/10 p-8 md:p-10 rounded-2xl shadow-2xl"
+            >
+              <p className="text-4xl md:text-5xl font-serif mb-1 text-white">15+</p>
+              <p className="text-[10px] uppercase tracking-[0.3em] text-white/40">Years of Mastery</p>
+            </motion.div>
           </motion.div>
 
-          {/* Artist Info */}
           <motion.div
-            initial={{ opacity: 0, x: 30 }}
-            whileInView={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="order-1 md:order-2"
+            transition={{ duration: 0.8, delay: 0.3 }}
+            className="order-1 lg:order-2"
           >
-            <span className="text-xs md:text-sm tracking-wider text-gray-600 uppercase mb-3 md:mb-4 block">
-              Meet the Artist
+            <span className="text-[10px] tracking-[0.4em] text-white/40 uppercase mb-6 block">
+              The Sculptor Behind it All
             </span>
-            <h2 className="text-3xl md:text-4xl lg:text-5xl mb-4 md:mb-6 tracking-tight">
+            <h2 className="text-4xl md:text-5xl lg:text-7xl font-serif mb-8 md:mb-12 tracking-tight text-white">
               Moises Ragay
             </h2>
-            <p className="text-base md:text-lg text-gray-600 mb-6 md:mb-8 leading-relaxed">
-              A master wire sculptor with over 15 years of experience, Moises Ragay transforms simple
-              wire into extraordinary works of art. His unique approach combines traditional metalworking
-              techniques with contemporary design philosophy, resulting in pieces that are both
-              timeless and modern.
-            </p>
-            <p className="text-base md:text-lg text-gray-600 mb-8 md:mb-10 leading-relaxed">
-              Each sculpture is a testament to his dedication to craftsmanship, attention to detail,
-              and passion for pushing the boundaries of what's possible with wire as a medium.
-            </p>
-
-            {/* Stats */}
-            <div className="grid grid-cols-3 gap-4 md:gap-6 mb-8">
-              <div className="text-center p-4 bg-white rounded-xl">
-                <Award className="w-6 h-6 md:w-8 md:h-8 mx-auto mb-2 text-gray-700" />
-                <p className="text-lg md:text-2xl mb-1">12+</p>
-                <p className="text-xs md:text-sm text-gray-600">Awards</p>
-              </div>
-              <div className="text-center p-4 bg-white rounded-xl">
-                <Palette className="w-6 h-6 md:w-8 md:h-8 mx-auto mb-2 text-gray-700" />
-                <p className="text-lg md:text-2xl mb-1">200+</p>
-                <p className="text-xs md:text-sm text-gray-600">Creations</p>
-              </div>
-              <div className="text-center p-4 bg-white rounded-xl">
-                <Heart className="w-6 h-6 md:w-8 md:h-8 mx-auto mb-2 text-gray-700" />
-                <p className="text-lg md:text-2xl mb-1">1000+</p>
-                <p className="text-xs md:text-sm text-gray-600">Happy Clients</p>
-              </div>
+            <div className="space-y-6 text-sm md:text-base text-white/60 leading-relaxed max-w-xl">
+              <p>
+                A master wire sculptor with over 15 years of singular focus, Moises Ragay transforms cold, industrial metal thread into breathing, organic monuments.
+              </p>
+              <p>
+                His philosophy centers on the tension between strength and fragility. By weaving miles of wire by hand, he creates works that capture the transient beauty of nature with eternal permanence.
+              </p>
             </div>
 
-            <button className="bg-black text-white px-6 md:px-8 py-3 md:py-4 rounded-full hover:bg-gray-800 transition-colors text-sm md:text-base">
-              View Full Portfolio
-            </button>
+            {/* Social & Contact */}
+            <div className="flex items-center gap-6 mt-12 mb-16">
+               <a href="https://www.instagram.com/moseswireartworks/" target="_blank" rel="noopener noreferrer" className="text-white/40 hover:text-white transition-colors">
+                  <Instagram size={20} strokeWidth={1.5} />
+               </a>
+               <a href="https://www.facebook.com/MosesRagay" target="_blank" rel="noopener noreferrer" className="text-white/40 hover:text-white transition-colors">
+                  <Facebook size={20} strokeWidth={1.5} />
+               </a>
+               <div className="w-12 h-px bg-white/10 mx-2" />
+               <a href="https://m.me/MosesRagay" target="_blank" rel="noopener noreferrer" className="text-[10px] uppercase tracking-[0.3em] text-white/60 hover:text-white transition-colors flex items-center gap-3">
+                  <MessageCircle size={16} />
+                  Message Moises
+               </a>
+            </div>
+
+            {/* Stats */}
+            <div className="grid grid-cols-3 gap-4 md:gap-8 border-t border-white/5 pt-12">
+              <div className="text-left">
+                <p className="text-xl md:text-2xl font-serif mb-1 text-white">12+</p>
+                <p className="text-[10px] uppercase tracking-widest text-white/30">Awards</p>
+              </div>
+              <div className="text-left">
+                <p className="text-xl md:text-2xl font-serif mb-1 text-white">200+</p>
+                <p className="text-[10px] uppercase tracking-widest text-white/30">Creations</p>
+              </div>
+              <div className="text-left">
+                <p className="text-xl md:text-2xl font-serif mb-1 text-white">1k+</p>
+                <p className="text-[10px] uppercase tracking-widest text-white/30">Collectors</p>
+              </div>
+            </div>
           </motion.div>
         </div>
       </div>

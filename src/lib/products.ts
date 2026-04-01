@@ -42,7 +42,17 @@ const COLLECTION = 'products';
 export async function fetchProducts(): Promise<Product[]> {
   const q = query(collection(db, COLLECTION), orderBy('createdAt', 'desc'));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Product));
+  return snapshot.docs.map((d) => {
+    const data = d.data() as Omit<Product, 'id'>;
+    let optimizedImage = data.image;
+    
+    // Auto-inject Cloudinary format/quality optimizations if not already present
+    if (optimizedImage && optimizedImage.includes('res.cloudinary.com') && !optimizedImage.includes('f_auto,q_auto')) {
+      optimizedImage = optimizedImage.replace('/image/upload/', '/image/upload/f_auto,q_auto/');
+    }
+
+    return { id: d.id, ...data, image: optimizedImage } as Product;
+  });
 }
 
 // ─── CLOUDINARY UPLOAD ────────────────────────────────────────────────────────

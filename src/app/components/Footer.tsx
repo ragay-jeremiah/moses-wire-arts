@@ -1,4 +1,4 @@
-import { Instagram, Facebook, Twitter, Mail } from 'lucide-react';
+import { Instagram, Facebook, MessageCircle } from 'lucide-react';
 
 export function Footer() {
   return (
@@ -13,17 +13,14 @@ export function Footer() {
               Each piece is a unique expression of contemporary craftsmanship.
             </p>
             <div className="flex gap-4">
-              <a href="#" className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors">
+              <a href="https://www.instagram.com/moseswireartworks/" target="_blank" rel="noopener noreferrer" className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors">
                 <Instagram className="w-5 h-5" />
               </a>
-              <a href="#" className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors">
+              <a href="https://www.facebook.com/MosesRagay" target="_blank" rel="noopener noreferrer" className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors">
                 <Facebook className="w-5 h-5" />
               </a>
-              <a href="#" className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors">
-                <Twitter className="w-5 h-5" />
-              </a>
-              <a href="#" className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors">
-                <Mail className="w-5 h-5" />
+              <a href="https://m.me/MosesRagay" target="_blank" rel="noopener noreferrer" className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors">
+                <MessageCircle className="w-5 h-5" />
               </a>
             </div>
           </div>
