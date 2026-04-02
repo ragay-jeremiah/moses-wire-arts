@@ -1,23 +1,27 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth } from '../firebase';
 import { Toaster, toast } from 'react-hot-toast';
-import { MessageCircle } from 'lucide-react';
+import { MessageCircle, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Header } from './components/Header';
 import { HeroVideo } from './components/HeroVideo';
 import { ArtistSection } from './components/ArtistSection';
 import { Footer } from './components/Footer';
-import { CartDrawer } from './components/CartDrawer';
-import { ProductDetailModal } from './components/ProductDetailModal';
+import PhotoStackDemo from './components/PhotoStackDemo';
 import { Product } from './components/ProductCard';
 import { ProductGrid } from './components/ProductGrid';
-import { AdminLogin } from './components/admin/AdminLogin';
-import { AdminPanel } from './components/admin/AdminPanel';
 import { fetchProducts } from '../lib/products';
 import { CircularGallery, GalleryItem } from '../components/ui/circular-gallery';
 
+// Lazy load heavy components
+const AdminLogin = lazy(() => import('./components/admin/AdminLogin').then(m => ({ default: m.AdminLogin })));
+const AdminPanel = lazy(() => import('./components/admin/AdminPanel').then(m => ({ default: m.AdminPanel })));
+const CartDrawer = lazy(() => import('./components/CartDrawer').then(m => ({ default: m.CartDrawer })));
+const ProductDetailModal = lazy(() => import('./components/ProductDetailModal').then(m => ({ default: m.ProductDetailModal })));
+
 const FAKE_GALLERY_DATA: GalleryItem[] = [
+  // ... (same as before)
   {
     common: 'Lion',
     binomial: 'Panthera leo',
@@ -45,35 +49,38 @@ const FAKE_GALLERY_DATA: GalleryItem[] = [
   }
 ];
 
-// Firestore Product type maps 1-to-1 with the existing Product interface
-// so no re-typing needed.
-
 interface CartItem extends Product {
   quantity: number;
 }
 
-// Secret key sequence to open admin login: press Shift+A three times
 const ADMIN_KEY = 'AAA';
 
+const LoadingOverlay = () => (
+  <div className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-md flex flex-col items-center justify-center">
+    <div className="relative">
+      <div className="w-16 h-16 border-t-2 border-white/20 rounded-full animate-spin"></div>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <Loader2 className="w-6 h-6 text-white animate-pulse" />
+      </div>
+    </div>
+    <p className="mt-6 text-[10px] uppercase tracking-[0.4em] text-white/40 font-medium">Synchronizing Artifacts...</p>
+  </div>
+);
+
 export default function App() {
-  // ─── Auth ─────────────────────────────────────────────────────────────────
   const [adminUser, setAdminUser] = useState<User | null>(null);
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [keyBuffer, setKeyBuffer] = useState('');
 
-  // Listen to Firebase auth state
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
       setAdminUser(user);
-      if (!user) {
-        setShowAdminPanel(false);
-      }
+      if (!user) setShowAdminPanel(false);
     });
     return () => unsub();
   }, []);
 
-  // Secret keyboard shortcut: Shift+A × 3 to open admin login
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.shiftKey && e.key === 'A') {
@@ -81,11 +88,8 @@ export default function App() {
         setKeyBuffer(next);
         if (next === ADMIN_KEY) {
           setKeyBuffer('');
-          if (adminUser) {
-            setShowAdminPanel(true);
-          } else {
-            setShowAdminLogin(true);
-          }
+          if (adminUser) setShowAdminPanel(true);
+          else setShowAdminLogin(true);
         }
       }
     };
@@ -93,30 +97,22 @@ export default function App() {
     return () => window.removeEventListener('keydown', handler);
   }, [keyBuffer, adminUser]);
 
-  // ─── Mobile Admin Login Methods ───────────────────────────────────────────
-  // 1. Secret URL parameter `?admin=login`
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('admin') === 'login') {
-      if (adminUser) {
-        setShowAdminPanel(true);
-      } else {
-        setShowAdminLogin(true);
-      }
+      if (adminUser) setShowAdminPanel(true);
+      else setShowAdminLogin(true);
       const url = new URL(window.location.href);
       url.searchParams.delete('admin');
       window.history.replaceState({}, '', url);
     }
   }, [adminUser]);
 
-  // 2. Secret Tap Zone: Tap bottom-left corner 5 times rapidly
   const [tapCount, setTapCount] = useState(0);
   useEffect(() => {
     let timeout: ReturnType<typeof setTimeout>;
-    
     const handler = (e: TouchEvent) => {
       const touch = e.touches[0];
-      // Bottom-left corner hit area (80x80 pixels)
       if (touch.clientX < 80 && touch.clientY > window.innerHeight - 80) {
         setTapCount(prev => {
           const next = prev + 1;
@@ -127,14 +123,12 @@ export default function App() {
           }
           return next;
         });
-        
         clearTimeout(timeout);
         timeout = setTimeout(() => setTapCount(0), 1500);
       } else {
         setTapCount(0);
       }
     };
-    
     window.addEventListener('touchstart', handler);
     return () => {
       window.removeEventListener('touchstart', handler);
@@ -142,7 +136,6 @@ export default function App() {
     };
   }, [adminUser]);
 
-  // ─── Products (Firestore) ─────────────────────────────────────────────────
   const [products, setProducts] = useState<Product[]>([]);
   const [productsLoaded, setProductsLoaded] = useState(false);
 
@@ -159,7 +152,6 @@ export default function App() {
 
   useEffect(() => { loadProducts(); }, []);
 
-  // ─── Shop & Cart ──────────────────────────────────────────────────────────
   const [currentView, setCurrentView] = useState<'landing' | 'shop'>('landing');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -185,19 +177,11 @@ export default function App() {
   };
 
   const handleUpdateQuantity = (id: string, quantity: number) => {
-    if (quantity === 0) {
-      handleRemoveItem(id);
-    } else {
-      setCartItems(cartItems.map((item) =>
-        item.id === id ? { ...item, quantity } : item
-      ));
-    }
+    if (quantity === 0) handleRemoveItem(id);
+    else setCartItems(cartItems.map((item) => item.id === id ? { ...item, quantity } : item));
   };
 
-  const handleRemoveItem = (id: string) => {
-    setCartItems(cartItems.filter((item) => item.id !== id));
-  };
-
+  const handleRemoveItem = (id: string) => setCartItems(cartItems.filter((item) => item.id !== id));
   const handleProductClick = (product: Product) => {
     setSelectedProduct(product);
     setIsProductModalOpen(true);
@@ -234,7 +218,6 @@ export default function App() {
           document.getElementById('shop-section')?.scrollIntoView({ behavior: 'smooth' });
         }} />
 
-        {/* Intro text */}
         <section id="shop-section" className="py-24 px-6 md:px-16 max-w-[1400px] mx-auto pt-32 relative z-10">
           <div className="max-w-3xl mx-auto text-center mb-16">
             <h3 className="font-serif text-4xl md:text-5xl tracking-tight mb-8 text-white">
@@ -257,41 +240,13 @@ export default function App() {
           </div>
         </section>
 
-        {/* Artist Section */}
         <ArtistSection />
 
-        {/* Featured Gallery Section */}
-        <div id="featured" className="w-full bg-black text-white" style={{ height: '300vh' }}>
-          <div className="w-full h-screen sticky top-0 flex flex-col items-center justify-center overflow-hidden">
-            <div className="text-center mb-8 absolute top-24 z-10 pointer-events-none">
-              <p className="text-[10px] uppercase tracking-[0.4em] text-white/30">Scroll to Explore Mastery</p>
-            </div>
-            <div className="w-full h-full">
-              <CircularGallery 
-                items={
-                  products.length > 0 
-                    ? filteredProducts.map(p => ({
-                        id: p.id,
-                        common: p.name,
-                        binomial: `$${p.price.toLocaleString()}`,
-                        photo: { url: p.image, text: p.name, by: p.artist }
-                      }))
-                    : FAKE_GALLERY_DATA
-                } 
-                onItemClick={(item) => {
-                  if (item.id) {
-                    const product = products.find(p => p.id === item.id);
-                    if (product) handleProductClick(product);
-                  } else if (adminUser) {
-                     setShowAdminPanel(true);
-                  }
-                }}
-              />
-            </div>
-          </div>
-        </div>
+        {/* Featured Gallery Section - New PhotoStack showcase */}
+        <section id="featured" className="w-full bg-black relative z-20">
+          <PhotoStackDemo />
+        </section>
 
-        {/* Full Collection Section */}
         <section id="collections" className="py-24 md:py-32 px-6 md:px-16 max-w-[1400px] mx-auto relative z-10">
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-8">
             <div className="max-w-xl">
@@ -307,7 +262,6 @@ export default function App() {
           />
         </section>
 
-        {/* Production CTA Section */}
         <section className="py-32 px-6 md:px-16 border-t border-white/5 bg-[#050505]">
           <div className="max-w-4xl mx-auto text-center">
             <motion.div
@@ -336,41 +290,46 @@ export default function App() {
 
       <Footer />
 
-      {/* ─── Cart & Product Modal ──────────────────────────────────────── */}
-      <CartDrawer
-        isOpen={isCartOpen}
-        onClose={() => setIsCartOpen(false)}
-        items={cartItems}
-        onUpdateQuantity={handleUpdateQuantity}
-        onRemoveItem={handleRemoveItem}
-      />
+      {/* ─── Cart & Product Modal (Lazy Loaded) ────────────────────────── */}
+      <Suspense fallback={<LoadingOverlay />}>
+        {isCartOpen && (
+          <CartDrawer
+            isOpen={isCartOpen}
+            onClose={() => setIsCartOpen(false)}
+            items={cartItems}
+            onUpdateQuantity={handleUpdateQuantity}
+            onRemoveItem={handleRemoveItem}
+          />
+        )}
 
-      <ProductDetailModal
-        product={selectedProduct}
-        isOpen={isProductModalOpen}
-        onClose={() => setIsProductModalOpen(false)}
-        onAddToCart={handleAddToCart}
-      />
+        {isProductModalOpen && (
+          <ProductDetailModal
+            product={selectedProduct}
+            isOpen={isProductModalOpen}
+            onClose={() => setIsProductModalOpen(false)}
+            onAddToCart={handleAddToCart}
+          />
+        )}
 
-      {/* ─── Admin ────────────────────────────────────────────────────── */}
-      {showAdminLogin && (
-        <AdminLogin 
-          onClose={() => setShowAdminLogin(false)} 
-          onSuccess={() => {
-            setShowAdminLogin(false);
-            setShowAdminPanel(true);
-          }}
-        />
-      )}
+        {showAdminLogin && (
+          <AdminLogin 
+            onClose={() => setShowAdminLogin(false)} 
+            onSuccess={() => {
+              setShowAdminLogin(false);
+              setShowAdminPanel(true);
+            }}
+          />
+        )}
 
-      {showAdminPanel && adminUser && (
-        <AdminPanel
-          onClose={() => {
-            setShowAdminPanel(false);
-            loadProducts(); // Refresh products after admin makes changes
-          }}
-        />
-      )}
+        {showAdminPanel && adminUser && (
+          <AdminPanel
+            onClose={() => {
+              setShowAdminPanel(false);
+              loadProducts();
+            }}
+          />
+        )}
+      </Suspense>
     </div>
   );
 }

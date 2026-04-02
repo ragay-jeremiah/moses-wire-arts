@@ -1,10 +1,11 @@
 import { useEffect, useState, useRef } from 'react';
 import { signOut } from 'firebase/auth';
-import { Plus, Pencil, Trash2, LogOut, Loader2, X, RefreshCw, Upload, Video, Image as ImageIcon } from 'lucide-react';
+import { Plus, Pencil, Trash2, LogOut, Loader2, X, RefreshCw, Upload, Video, Image as ImageIcon, Tags, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { auth } from '../../../firebase';
 import { fetchProducts, deleteProduct, Product } from '../../../lib/products';
 import { fetchSettings, updateHeroVideo, updateArtistImage } from '../../../lib/settings';
+import { fetchCategories, addCategory, updateCategory, deleteCategory, Category } from '../../../lib/categories';
 import { ProductForm } from './ProductForm';
 import { toast } from 'react-hot-toast';
 
@@ -12,12 +13,22 @@ interface AdminPanelProps {
   onClose: () => void;
 }
 
+type AdminView = 'products' | 'categories';
+
 export function AdminPanel({ onClose }: AdminPanelProps) {
+  const [view, setView] = useState<AdminView>('products');
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null | undefined>(undefined);
   // undefined = closed, null = adding new, Product = editing existing
+
+  // Category State
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [editCategoryName, setEditCategoryName] = useState('');
 
   // Site Appearance state
   const [heroVideoUrl, setHeroVideoUrl] = useState<string | null>(null);
@@ -31,11 +42,13 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [list, settings] = await Promise.all([
+      const [list, settings, catList] = await Promise.all([
         fetchProducts(),
-        fetchSettings()
+        fetchSettings(),
+        fetchCategories()
       ]);
       setProducts(list);
+      setCategories(catList);
       if (settings?.heroVideoUrl) {
         setHeroVideoUrl(settings.heroVideoUrl);
       }
@@ -103,6 +116,52 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
     }
   };
 
+  const handleAddCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCategoryName.trim()) return;
+    setIsAddingCategory(true);
+    try {
+      const cat = await addCategory(newCategoryName);
+      setCategories([...categories, cat]);
+      setNewCategoryName('');
+      toast.success('Category added.');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to add category');
+    } finally {
+      setIsAddingCategory(false);
+    }
+  };
+
+  const handleUpdateCategory = async (id: string) => {
+    if (!editCategoryName.trim()) return;
+    try {
+      await updateCategory(id, editCategoryName);
+      setCategories(categories.map(c => c.id === id ? { ...c, name: editCategoryName } : c));
+      setEditingCategoryId(null);
+      toast.success('Category updated.');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to update category');
+    }
+  };
+
+  const handleDeleteCategory = async (id: string, name: string) => {
+    // Check if category is in use
+    const inUse = products.some(p => p.category === name);
+    if (inUse) {
+      toast.error(`"${name}" is currently used by products. Please change them first.`);
+      return;
+    }
+
+    if (!window.confirm(`Delete "${name}" category?`)) return;
+    try {
+      await deleteCategory(id);
+      setCategories(categories.filter(c => c.id !== id));
+      toast.success('Category removed.');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to delete category');
+    }
+  };
+
   const handleSaved = () => {
     setEditingProduct(undefined);
     loadData();
@@ -129,16 +188,26 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
         transition={{ type: 'spring', damping: 28, stiffness: 260 }}
-        className="fixed right-0 top-0 h-full w-full sm:w-[600px] bg-[#fafafa] shadow-2xl z-[160] flex flex-col"
+        className="fixed right-0 top-0 h-full w-full sm:w-[600px] bg-[#fafafa] shadow-2xl z-[160] flex flex-col overflow-hidden text-zinc-900"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b bg-white">
-          <div>
-            <p className="font-serif text-lg">Admin Panel</p>
-            <p className="text-[10px] uppercase tracking-[0.25em] text-black/40 font-medium">
-              Moses Wire Arts
-            </p>
+        <div className="flex items-center justify-between px-6 py-5 border-b bg-white shrink-0">
+          <div className="flex items-center gap-3">
+            {view !== 'products' && (
+              <button 
+                onClick={() => setView('products')}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors mr-1"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+            )}
+            <div>
+              <p className="font-serif text-lg">{view === 'products' ? 'Admin Panel' : 'Manage Categories'}</p>
+              <p className="text-[10px] uppercase tracking-[0.25em] text-black/40 font-medium">
+                Moses Wire Arts
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -150,7 +219,7 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
             </button>
             <button
               onClick={handleSignOut}
-              className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] font-medium text-black/50 hover:text-black transition-colors px-3 py-2 hover:bg-gray-100 rounded-lg"
+              className="flex items-center gap-1.5 text-xs uppercase tracking-wider font-semibold text-black/50 hover:text-black transition-colors px-3 py-2 hover:bg-gray-100 rounded-lg"
             >
               <LogOut className="w-3.5 h-3.5" />
               Sign Out
@@ -161,189 +230,284 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
           </div>
         </div>
 
-          {/* Site Appearance Management */}
-          <div className="px-6 py-6 bg-white border-b mb-1 shrink-0 space-y-8">
-            {/* Hero Video */}
-            <div>
-              <h3 className="text-[10px] uppercase tracking-[0.25em] font-bold mb-4 flex items-center gap-2 text-black/60">
-                <Video className="w-3.5 h-3.5" />
-                Landing Page Video
-              </h3>
-              
-              <div className="flex gap-4 items-start">
-                <div className="relative w-32 h-20 bg-black rounded-lg overflow-hidden flex-shrink-0 group ring-1 ring-black/5">
-                  {heroVideoUrl ? (
-                    <video src={heroVideoUrl} className="w-full h-full object-cover opacity-80" muted playsInline />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gray-50 text-[9px] uppercase tracking-widest text-black/20">Empty</div>
-                  )}
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <p className="text-[9px] text-white uppercase tracking-widest">Preview</p>
-                  </div>
-                </div>
-                
-                <div className="flex-1 min-w-0">
-                  <input 
-                    type="file" 
-                    accept="video/mp4,video/webm" 
-                    ref={videoInputRef}
-                    onChange={handleVideoUpload}
-                    className="hidden" 
-                  />
-                  <button
-                    onClick={() => videoInputRef.current?.click()}
-                    disabled={uploadingVideo}
-                    className="flex items-center gap-2 bg-white border border-black/10 px-4 py-2.5 text-[10px] uppercase tracking-[0.2em] rounded-lg hover:bg-gray-50 transition-all active:scale-95 disabled:opacity-50"
-                  >
-                    {uploadingVideo ? (
-                      <><Loader2 className="w-3 h-3 animate-spin" /> Uploading...</>
-                    ) : (
-                      <><Upload className="w-3 h-3" /> Update Video</>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Artist Profile Image */}
-            <div className="pt-2">
-              <h3 className="text-[10px] uppercase tracking-[0.25em] font-bold mb-4 flex items-center gap-2 text-black/60">
-                <ImageIcon className="w-3.5 h-3.5" />
-                Artist Profile Image
-              </h3>
-              
-              <div className="flex gap-4 items-start">
-                <div className="relative w-32 h-32 bg-gray-50 rounded-lg overflow-hidden flex-shrink-0 group ring-1 ring-black/5">
-                  {artistImageUrl ? (
-                    <img src={artistImageUrl} className="w-full h-full object-cover opacity-90 grayscale group-hover:grayscale-0 transition-all duration-500" alt="Artist Profile" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-[9px] uppercase tracking-widest text-black/20">Empty</div>
-                  )}
-                  <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <p className="text-[9px] text-white uppercase tracking-widest">Grayscale Active</p>
-                  </div>
-                </div>
-                
-                <div className="flex-1 min-w-0 pt-2">
-                  <input 
-                    type="file" 
-                    accept="image/*" 
-                    ref={artistImageInputRef}
-                    onChange={handleArtistImageUpload}
-                    className="hidden" 
-                  />
-                  <button
-                    onClick={() => artistImageInputRef.current?.click()}
-                    disabled={uploadingArtistImage}
-                    className="flex items-center gap-2 bg-white border border-black/10 px-4 py-2.5 text-[10px] uppercase tracking-[0.2em] rounded-lg hover:bg-gray-50 transition-all active:scale-95 disabled:opacity-50"
-                  >
-                    {uploadingArtistImage ? (
-                      <><Loader2 className="w-3 h-3 animate-spin" /> Uploading...</>
-                    ) : (
-                      <><Upload className="w-3 h-3" /> Update Profile Pic</>
-                    )}
-                  </button>
-                  <p className="text-[9px] text-gray-500 mt-3 leading-relaxed uppercase tracking-wider">
-                    Recommended: 1080x1350 for portrait. High contrast works best with the grayscale effect.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Products Toolbar */}
-        <div className="flex items-center justify-between px-6 py-4 bg-white border-b">
-          <div>
-            <p className="text-sm font-medium">Collection Pieces</p>
-            <p className="text-xs text-black/40">{products.length} masterwork{products.length !== 1 ? 's' : ''}</p>
-          </div>
-          <button
-            onClick={() => setEditingProduct(null)}
-            className="flex items-center gap-2 bg-black text-white text-[10px] uppercase tracking-[0.2em] font-medium px-4 py-2.5 rounded-lg hover:bg-black/80 transition-colors shadow-black/10 shadow-lg"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            New Creation
-          </button>
-        </div>
-
-        {/* Product List */}
-        <div className="flex-1 overflow-y-auto bg-white/50 backdrop-blur-sm">
-          {loading ? (
-            <div className="flex items-center justify-center h-48 gap-3 text-black/30">
-              <Loader2 className="w-5 h-5 animate-spin" />
-              <p className="text-sm uppercase tracking-widest">Accessing Vault…</p>
-            </div>
-          ) : products.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-48 text-center px-6">
-              <p className="text-sm text-black/40 mb-4">No creations documented yet.</p>
-              <button
-                onClick={() => setEditingProduct(null)}
-                className="text-[10px] uppercase tracking-[0.2em] font-medium underline underline-offset-4 hover:opacity-60 transition-opacity"
-              >
-                Document your first piece
-              </button>
-            </div>
-          ) : (
-            <div className="divide-y divide-gray-100">
-              <AnimatePresence initial={false}>
-                {products.map((product) => (
-                  <motion.div
-                    key={product.id}
-                    layout
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20, height: 0 }}
-                    className="flex items-center gap-4 px-6 py-4 bg-white hover:bg-gray-50 transition-colors"
-                  >
-                    {/* Image */}
-                    <div className="w-14 h-14 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 ring-1 ring-black/5">
-                      {product.image && (
-                        <img
-                          src={product.image}
-                          alt={product.name}
-                          className="w-full h-full object-cover"
-                        />
+        <div className="flex-1 overflow-y-auto overflow-x-hidden">
+          {view === 'products' ? (
+            <>
+              {/* Site Appearance Management */}
+              <div className="px-6 py-6 bg-white border-b mb-1 shrink-0 space-y-8">
+                {/* Hero Video */}
+                <div>
+                  <h3 className="text-[10px] uppercase tracking-[0.25em] font-bold mb-4 flex items-center gap-2 text-black/60">
+                    <Video className="w-3.5 h-3.5" />
+                    Landing Page Video
+                  </h3>
+                  
+                  <div className="flex gap-4 items-start">
+                    <div className="relative w-32 h-20 bg-black rounded-lg overflow-hidden flex-shrink-0 group ring-1 ring-black/5">
+                      {heroVideoUrl ? (
+                        <video src={heroVideoUrl} className="w-full h-full object-cover opacity-80" muted playsInline />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gray-50 text-[9px] uppercase tracking-widest text-black/20">Empty</div>
                       )}
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <p className="text-[9px] text-white uppercase tracking-widest">Preview</p>
+                      </div>
                     </div>
-
-                    {/* Info */}
+                    
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">{product.name}</p>
-                      <p className="text-xs text-black/40 truncate uppercase tracking-widest">
-                        {product.category} · ${product.price.toLocaleString()}
+                      <input 
+                        type="file" 
+                        accept="video/mp4,video/webm" 
+                        ref={videoInputRef}
+                        onChange={handleVideoUpload}
+                        className="hidden" 
+                      />
+                      <button
+                        onClick={() => videoInputRef.current?.click()}
+                        disabled={uploadingVideo}
+                        className="flex items-center gap-2 bg-white border border-black/10 px-4 py-2.5 text-xs uppercase tracking-wider font-bold rounded-lg hover:bg-gray-50 transition-all active:scale-95 disabled:opacity-50"
+                      >
+                        {uploadingVideo ? (
+                          <><Loader2 className="w-3 h-3 animate-spin" /> Uploading...</>
+                        ) : (
+                          <><Upload className="w-3 h-3" /> Update Video</>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Artist Profile Image */}
+                <div className="pt-2">
+                  <h3 className="text-[10px] uppercase tracking-[0.25em] font-bold mb-4 flex items-center gap-2 text-black/60">
+                    <ImageIcon className="w-3.5 h-3.5" />
+                    Artist Profile Image
+                  </h3>
+                  
+                  <div className="flex gap-4 items-start">
+                    <div className="relative w-32 h-32 bg-gray-50 rounded-lg overflow-hidden flex-shrink-0 group ring-1 ring-black/5">
+                      {artistImageUrl ? (
+                        <img src={artistImageUrl} className="w-full h-full object-cover opacity-90 grayscale group-hover:grayscale-0 transition-all duration-500" alt="Artist Profile" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-[9px] uppercase tracking-widest text-black/20">Empty</div>
+                      )}
+                      <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <p className="text-[9px] text-white uppercase tracking-widest">Grayscale Active</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex-1 min-w-0 pt-2">
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        ref={artistImageInputRef}
+                        onChange={handleArtistImageUpload}
+                        className="hidden" 
+                      />
+                      <button
+                        onClick={() => artistImageInputRef.current?.click()}
+                        disabled={uploadingArtistImage}
+                        className="flex items-center gap-2 bg-white border border-black/10 px-4 py-2.5 text-xs uppercase tracking-wider font-bold rounded-lg hover:bg-gray-50 transition-all active:scale-95 disabled:opacity-50"
+                      >
+                        {uploadingArtistImage ? (
+                          <><Loader2 className="w-3 h-3 animate-spin" /> Uploading...</>
+                        ) : (
+                          <><Upload className="w-3 h-3" /> Update Profile Pic</>
+                        )}
+                      </button>
+                      <p className="text-[9px] text-gray-500 mt-3 leading-relaxed uppercase tracking-wider">
+                        Recommended: 1080x1350 for portrait. High contrast works best with the grayscale effect.
                       </p>
                     </div>
+                  </div>
+                </div>
+              </div>
 
-                    {/* Actions */}
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
-                      <button
-                        onClick={() => setEditingProduct(product)}
-                        className="p-2 rounded-lg hover:bg-gray-100 text-black/40 hover:text-black transition-colors"
-                        title="Edit"
-                      >
-                        <Pencil className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(product)}
-                        disabled={deletingId === product.id}
-                        className="p-2 rounded-lg hover:bg-red-50 text-red-400 hover:text-red-600 transition-colors disabled:opacity-40"
-                        title="Delete"
-                      >
-                        {deletingId === product.id
-                          ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          : <Trash2 className="w-3.5 h-3.5" />
-                        }
-                      </button>
+              {/* Products Toolbar */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between px-6 py-4 bg-white border-b gap-4">
+                <div>
+                  <p className="text-sm font-medium text-zinc-900">Collection Pieces</p>
+                  <p className="text-xs text-black/40">{products.length} masterwork{products.length !== 1 ? 's' : ''}</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    onClick={() => setView('categories')}
+                    className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-white border border-black/10 text-black text-xs uppercase tracking-wider font-bold px-4 py-2.5 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    <Tags className="w-3.5 h-3.5" />
+                    Categories
+                  </button>
+                  <button
+                    onClick={() => setEditingProduct(null)}
+                    className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-black text-white text-xs uppercase tracking-wider font-bold px-4 py-2.5 rounded-lg hover:bg-black/80 transition-colors shadow-black/10 shadow-lg"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    New Creation
+                  </button>
+                </div>
+              </div>
+
+              {/* Product List */}
+              <div className="bg-white/50 backdrop-blur-sm min-h-[300px]">
+                {loading ? (
+                  <div className="flex items-center justify-center h-48 gap-3 text-black/30">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <p className="text-sm uppercase tracking-widest">Accessing Vault…</p>
+                  </div>
+                ) : products.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-48 text-center px-6">
+                    <p className="text-sm text-black/40 mb-4">No creations documented yet.</p>
+                    <button
+                      onClick={() => setEditingProduct(null)}
+                      className="text-xs uppercase tracking-wider font-bold underline underline-offset-4 hover:opacity-60 transition-opacity"
+                    >
+                      Document your first piece
+                    </button>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-100">
+                    <AnimatePresence initial={false}>
+                      {products.map((product) => (
+                        <motion.div
+                          key={product.id}
+                          layout
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: 20, height: 0 }}
+                          className="flex items-center gap-4 px-6 py-4 bg-white hover:bg-gray-50 transition-colors"
+                        >
+                          <div className="w-14 h-14 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 ring-1 ring-black/5">
+                            {product.image && (
+                              <img
+                                src={product.image}
+                                alt={product.name}
+                                className="w-full h-full object-cover"
+                              />
+                            )}
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">{product.name}</p>
+                            <p className="text-xs text-black/40 truncate uppercase tracking-widest">
+                              {product.category} · ${product.price.toLocaleString()}
+                            </p>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            <button
+                              onClick={() => setEditingProduct(product)}
+                              className="p-2 rounded-lg hover:bg-gray-100 text-black/40 hover:text-black transition-colors"
+                              title="Edit"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(product)}
+                              disabled={deletingId === product.id}
+                              className="p-2 rounded-lg hover:bg-red-50 text-red-400 hover:text-red-600 transition-colors disabled:opacity-40"
+                              title="Delete"
+                            >
+                              {deletingId === product.id
+                                ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                : <Trash2 className="w-3.5 h-3.5" />
+                              }
+                            </button>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="px-6 py-8 bg-white/50 backdrop-blur-sm min-h-full">
+              {/* Add Category Form */}
+              <form onSubmit={handleAddCategory} className="mb-10 flex gap-3">
+                <input
+                  type="text"
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  placeholder="New category name..."
+                  className="flex-1 bg-white border border-black/10 rounded-xl px-5 py-3 text-sm text-zinc-900 focus:outline-none focus:border-black/30 transition-all"
+                  required
+                />
+                <button
+                  type="submit"
+                  disabled={isAddingCategory}
+                  className="bg-black text-white px-6 py-3 rounded-xl text-xs uppercase tracking-wider font-bold hover:bg-black/80 transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isAddingCategory ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                  Add
+                </button>
+              </form>
+
+              {/* Category List */}
+              <div className="divide-y divide-gray-100 bg-white rounded-2xl border overflow-hidden">
+                {categories.length === 0 ? (
+                  <div className="px-6 py-10 text-center text-black/30 text-xs uppercase tracking-widest">
+                    No categories defined
+                  </div>
+                ) : (
+                  categories.map((cat) => (
+                    <div key={cat.id} className="flex items-center justify-between px-6 py-5 group">
+                      {editingCategoryId === cat.id ? (
+                        <div className="flex gap-2 flex-1 mr-4">
+                          <input
+                            type="text"
+                            autoFocus
+                            value={editCategoryName}
+                            onChange={(e) => setEditCategoryName(e.target.value)}
+                            className="flex-1 bg-white border border-black/10 rounded-lg px-4 py-2 text-sm text-zinc-900 focus:outline-none focus:border-black/30"
+                          />
+                          <button
+                            onClick={() => handleUpdateCategory(cat.id)}
+                            className="bg-black text-white px-4 py-2 rounded-lg text-[10px] uppercase tracking-wider font-bold transition-all"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={() => setEditingCategoryId(null)}
+                            className="bg-gray-100 text-black/40 px-4 py-2 rounded-lg text-[10px] uppercase tracking-wider font-bold transition-all"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-3">
+                            <div className="w-1.5 h-1.5 bg-black/10 rounded-full" />
+                            <p className="font-medium text-sm">{cat.name}</p>
+                          </div>
+                          <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => {
+                                setEditingCategoryId(cat.id);
+                                setEditCategoryName(cat.name);
+                              }}
+                              className="p-2 rounded-lg hover:bg-gray-100 text-black/40 hover:text-black transition-colors"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteCategory(cat.id, cat.name)}
+                              className="p-2 rounded-lg hover:bg-red-50 text-red-400 hover:text-red-600 transition-colors"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </>
+                      )}
                     </div>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
+                  ))
+                )}
+              </div>
             </div>
           )}
         </div>
 
         {/* Footer note */}
-        <div className="border-t bg-white px-6 py-5">
+        <div className="border-t bg-white px-6 py-5 shrink-0">
           <p className="text-[9px] text-black/30 uppercase tracking-[0.25em] font-medium">
             Live Synchronization Active · Moses Wire Arts Console
           </p>

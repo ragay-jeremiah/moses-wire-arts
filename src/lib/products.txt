@@ -1,4 +1,4 @@
-import {
+﻿import {
   collection,
   addDoc,
   updateDoc,
@@ -12,9 +12,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase';
 
-// ─── Cloudinary Config ─────────────────────────────────────────
-
-export interface Product {
+// ─── Cloudinary Config ─────────────────────────────────────────�export interface Product {
   id: string;
   name: string;
   artist: string;
@@ -124,34 +122,25 @@ async function compressImage(file: File): Promise<Blob> {
 
 export async function addProduct(
   data: Omit<Product, 'id' | 'createdAt'>,
-  mixedImages?: (string | File)[]
+  imageFiles?: File[]
 ): Promise<Product> {
-  let finalUrls: string[] = [];
+  let imageUrls = data.images || [];
 
-  if (mixedImages && mixedImages.length > 0) {
-    const filesToUpload = mixedImages.filter(item => typeof item !== 'string') as File[];
-    let newUrls: string[] = [];
-    if (filesToUpload.length > 0) {
-      newUrls = await uploadManyToCloudinary(filesToUpload);
-    }
-    
-    let urlIndex = 0;
-    finalUrls = mixedImages.map(item => typeof item === 'string' ? item : newUrls[urlIndex++]);
-  } else {
-    finalUrls = data.images || [];
+  if (imageFiles && imageFiles.length > 0) {
+    imageUrls = await uploadManyToCloudinary(imageFiles);
   }
 
-  const primaryImage = finalUrls[0] || data.image || '';
+  const primaryImage = imageUrls[0] || data.image || '';
 
   const docRef = await addDoc(collection(db, COLLECTION), {
     ...data,
     image: primaryImage,
-    images: finalUrls,
+    images: imageUrls,
     storagePath: null,
     createdAt: serverTimestamp(),
   });
 
-  return { id: docRef.id, ...data, image: primaryImage, images: finalUrls };
+  return { id: docRef.id, ...data, image: primaryImage, images: imageUrls };
 }
 
 // ─── UPDATE ───────────────────────────────────────────────────────────────────
@@ -159,27 +148,17 @@ export async function addProduct(
 export async function updateProduct(
   id: string,
   data: Partial<Omit<Product, 'id' | 'createdAt'>>,
-  mixedImages?: (string | File)[],
+  imageFiles?: File[],
   _oldStoragePath?: string 
 ): Promise<void> {
   let updateData: Record<string, unknown> = { ...data };
 
-  if (mixedImages && mixedImages.length > 0) {
-    const filesToUpload = mixedImages.filter(item => typeof item !== 'string') as File[];
-    let newUrls: string[] = [];
-    if (filesToUpload.length > 0) {
-      newUrls = await uploadManyToCloudinary(filesToUpload);
-    }
-    
-    let urlIndex = 0;
-    const finalUrls = mixedImages.map(item => typeof item === 'string' ? item : newUrls[urlIndex++]);
-
-    updateData.images = finalUrls;
-    updateData.image = finalUrls[0];
-  } else if (data.images && Array.isArray(data.images) && data.images.length > 0) {
-    // If no files at all, but the order or elements of images array might have changed 
-    updateData.images = data.images;
-    updateData.image = data.images[0];
+  if (imageFiles && imageFiles.length > 0) {
+    const newUrls = await uploadManyToCloudinary(imageFiles);
+    // Append or replace? Let's assume the UI sends the full current list or we append.
+    // For now, let's treat imageFiles as the FULL NEW SET of uploaded files.
+    updateData.images = newUrls;
+    updateData.image = newUrls[0] || data.image;
   }
 
   await updateDoc(doc(db, COLLECTION, id), updateData);
@@ -188,5 +167,29 @@ export async function updateProduct(
 // ─── DELETE ───────────────────────────────────────────────────────────────────
 
 export async function deleteProduct(id: string, _storagePath?: string): Promise<void> {
+  await deleteDoc(doc(db, COLLECTION, id));
+}
+�───
+
+export async function updateProduct(
+  id: string,
+  data: Partial<Omit<Product, 'id' | 'createdAt'>>,
+  imageFile?: File,
+  _oldStoragePath?: string // ignored, no Firebase Storage
+): Promise<void> {
+  let updateData: Record<string, unknown> = { ...data };
+
+  if (imageFile) {
+    updateData.image = await uploadToCloudinary(imageFile);
+  }
+
+  await updateDoc(doc(db, COLLECTION, id), updateData);
+}
+
+// ─── DELETE ───────────────────────────────────────────────────────────────────
+
+export async function deleteProduct(id: string, _storagePath?: string): Promise<void> {
+  // Cloudinary deletion requires server-side signed API — skipping for now.
+  // Image stays in Cloudinary but document is removed from Firestore.
   await deleteDoc(doc(db, COLLECTION, id));
 }

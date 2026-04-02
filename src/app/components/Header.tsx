@@ -18,7 +18,7 @@ export function Header({ cartCount, onCartClick, onLogoClick, isAdmin, onAdminCl
         <div className="flex items-center justify-between h-20 text-white">
           {/* Logo */}
           <div className="flex-shrink-0 cursor-pointer hover:opacity-70 transition-opacity" onClick={onLogoClick}>
-            <h1 className="font-serif text-2xl tracking-[0.2em] uppercase font-medium">Moses Wire Arts</h1>
+            <h1 className="font-serif text-xl sm:text-2xl tracking-[0.2em] uppercase font-medium">Moses Wire Arts</h1>
           </div>
 
           {/* Desktop Navigation */}
@@ -78,11 +78,24 @@ export function Header({ cartCount, onCartClick, onLogoClick, isAdmin, onAdminCl
         {/* Mobile Navigation */}
         {isMenuOpen && (
           <div className="md:hidden py-12 absolute top-full left-0 right-0 bg-black/98 backdrop-blur-3xl border-b border-white/10 px-8 flex flex-col items-center shadow-2xl">
-            <nav className="flex flex-col space-y-8 text-center text-white mb-10">
+            <nav className="flex flex-col space-y-8 text-center text-white mb-10 w-full">
               <a href="#shop-section" onClick={() => setIsMenuOpen(false)} className="text-sm uppercase tracking-[0.2em] hover:opacity-50 transition-opacity">Collections</a>
               <a href="#featured" onClick={() => setIsMenuOpen(false)} className="text-sm uppercase tracking-[0.2em] hover:opacity-50 transition-opacity">Featured</a>
               <a href="#artist" onClick={() => setIsMenuOpen(false)} className="text-sm uppercase tracking-[0.2em] hover:opacity-50 transition-opacity">Artists</a>
               <a href="https://m.me/MosesRagay" target="_blank" rel="noopener noreferrer" className="text-sm uppercase tracking-[0.2em] hover:opacity-50 transition-opacity">Contact via Messenger</a>
+              
+              {isAdmin && (
+                <button
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    onAdminClick?.();
+                  }}
+                  className="text-sm uppercase tracking-[0.2em] text-white/60 hover:text-white transition-opacity flex items-center justify-center gap-2 pt-4 border-t border-white/5"
+                >
+                  <Settings size={14} />
+                  Admin Console
+                </button>
+              )}
             </nav>
             
             <div className="flex gap-8 border-t border-white/10 pt-10 w-full justify-center">

@@ -45,7 +45,7 @@ export function ArtistSection() {
               <ImageWithFallback
                 src={imageUrl || DEFAULT_ARTIST_IMAGE}
                 alt="Moises Ragay - Wire Artist"
-                className="w-full h-[500px] md:h-[700px] object-cover grayscale opacity-80 hover:grayscale-0 hover:opacity-100 transition-all duration-700"
+                className="w-full h-[350px] md:h-[700px] object-cover grayscale opacity-80 hover:grayscale-0 hover:opacity-100 transition-all duration-700"
                 loading="lazy"
               />
             </div>

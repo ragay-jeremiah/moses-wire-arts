@@ -47,6 +47,7 @@ export function ProductCard({ product, onAddToCart, onProductClick }: ProductCar
           src={product.image}
           alt={product.name}
           className="w-full h-full object-cover transition-all duration-1000 group-hover:scale-110 grayscale-[0.3] group-hover:grayscale-0 opacity-80 group-hover:opacity-100"
+          loading="lazy"
         />
         
         {/* Overlay buttons */}

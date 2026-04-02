@@ -62,24 +62,34 @@ export function HeroVideo({ onNavigateToShop }: { onNavigateToShop?: () => void 
       <div className="absolute inset-0 premium-grain opacity-20" />
       
       {/* Native Video Player */}
-      <AnimatePresence>
-        {!loading && videoUrl && (
-            <motion.video
-              ref={videoRef}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 1.5 }}
-              src={videoUrl}
-              autoPlay
-              loop
-              muted
-              playsInline
-              className="absolute inset-0 w-full h-full object-cover object-[center_85%] md:object-bottom z-0"
-              onLoadedMetadata={() => {
-                if (videoRef.current) videoRef.current.playbackRate = 0.6;
-              }}
-            />
-          )}
+      <AnimatePresence mode="wait">
+        {videoUrl ? (
+          <motion.video
+            key={videoUrl}
+            ref={videoRef}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 1.5 }}
+            src={videoUrl}
+            poster="/hero-poster.png"
+            autoPlay
+            loop
+            muted
+            playsInline
+            preload="auto"
+            className="absolute inset-0 w-full h-full object-cover object-[center_85%] md:object-bottom z-0"
+            onLoadedMetadata={() => {
+              if (videoRef.current) videoRef.current.playbackRate = 0.6;
+            }}
+          />
+        ) : (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="absolute inset-0 z-0 bg-cover bg-center grayscale opacity-40 transition-opacity duration-1000"
+            style={{ backgroundImage: 'url("/hero-poster.png")' }}
+          />
+        )}
       </AnimatePresence>
 
       {/* Lowkey Watermark Cover - Opaque black core with heavily blurred edges to completely swallow the text without looking like a box */}

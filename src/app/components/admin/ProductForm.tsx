@@ -1,7 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, Upload, Loader2, ChevronDown, Check, Sparkles } from 'lucide-react';
+import { X, Upload, Loader2, ChevronDown, Check, Sparkles, ArrowLeft, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Product, addProduct, updateProduct } from '../../../lib/products';
+import { fetchCategories, Category } from '../../../lib/categories';
+
+export type GalleryItem = 
+  | { id: string; type: 'url'; val: string }
+  | { id: string; type: 'file'; val: File; preview: string };
 
 interface ProductFormProps {
   product?: Product | null;
@@ -9,13 +14,11 @@ interface ProductFormProps {
   onSaved: () => void;
 }
 
-const CATEGORIES = ['Abstract', 'Geometric', 'Organic', 'Minimal'];
-
 const EMPTY_FORM = {
   name: '',
   artist: 'Moises Ragay',
   price: '',
-  category: 'Abstract',
+  category: '',
   image: '',
   description: '',
   dimensions: 'Custom sized',
@@ -49,7 +52,7 @@ function CustomSelect({ value, onChange, options, label }: { value: string, onCh
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center justify-between bg-white/5 border border-white/10 rounded-xl px-5 py-4 text-sm text-white/90 hover:bg-white/10 transition-all group"
       >
-        <span className="font-sans">{value}</span>
+        <span className="font-sans">{value || 'Select category...'}</span>
         <ChevronDown className={`w-4 h-4 text-white/30 transition-transform duration-500 ${isOpen ? 'rotate-180 text-white/70' : ''}`} />
       </button>
       
@@ -61,7 +64,9 @@ function CustomSelect({ value, onChange, options, label }: { value: string, onCh
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             className="absolute z-[400] top-full mt-2 left-0 right-0 bg-zinc-900 border border-white/10 rounded-2xl shadow-2xl overflow-hidden backdrop-blur-xl"
           >
-            {options.map((opt) => (
+            {options.length === 0 ? (
+              <div className="px-5 py-4 text-xs text-white/20">No categories found.</div>
+            ) : options.map((opt) => (
               <button
                 key={opt}
                 type="button"
@@ -98,37 +103,86 @@ export function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
     authenticity: product?.authenticity ?? EMPTY_FORM.authenticity,
     shipping: product?.shipping ?? EMPTY_FORM.shipping,
   });
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string>(product?.image ?? '');
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [gallery, setGallery] = useState<GalleryItem[]>(() => {
+    const initImages = product?.images?.length ? product.images : (product?.image ? [product.image] : []);
+    return initImages.map(url => ({ id: Math.random().toString(), type: 'url', val: url }));
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    async function loadCategories() {
+      try {
+        const catList = await fetchCategories();
+        setCategories(catList);
+        if (!isEditing && catList.length > 0 && !form.category) {
+          setForm(f => ({ ...f, category: catList[0].name }));
+        }
+      } catch (err) {
+        console.error('Failed to load categories:', err);
+      }
+    }
+    loadCategories();
+  }, [isEditing]);
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    const newItems: GalleryItem[] = files.map(file => ({
+      id: Math.random().toString(),
+      type: 'file',
+      val: file,
+      preview: URL.createObjectURL(file)
+    }));
+    setGallery((prev) => [...prev, ...newItems]);
     setForm((f) => ({ ...f, image: '' }));
+    e.target.value = '';
+  };
+
+  const removeImage = (id: string) => {
+    setGallery((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const moveImage = (index: number, direction: 'left' | 'right') => {
+    setGallery(prev => {
+      const newGallery = [...prev];
+      if (direction === 'left' && index > 0) {
+        [newGallery[index], newGallery[index - 1]] = [newGallery[index - 1], newGallery[index]];
+      } else if (direction === 'right' && index < newGallery.length - 1) {
+        [newGallery[index], newGallery[index + 1]] = [newGallery[index + 1], newGallery[index]];
+      }
+      return newGallery;
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (!imageFile && !form.image) {
+    if (gallery.length === 0 && !form.image) {
       setError('Please provide a masterpiece visual.');
+      return;
+    }
+
+    if (!form.category) {
+      setError('Please select an aesthetic genre.');
       return;
     }
 
     setLoading(true);
     try {
+      const mixedImages = gallery.map(item => item.val);
+      const existingUrls = gallery.filter(item => item.type === 'url').map(item => item.val as string);
+
       const data = {
         name: form.name.trim(),
         artist: form.artist.trim(),
         price: Number(form.price),
         category: form.category,
-        image: form.image.trim(),
+        image: existingUrls[0] || form.image.trim(),
+        images: existingUrls.length > 0 ? existingUrls : (form.image.trim() ? [form.image.trim()] : []),
         description: form.description.trim(),
         dimensions: form.dimensions.trim(),
         materials: form.materials.trim(),
@@ -138,9 +192,9 @@ export function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
       };
 
       if (isEditing && product) {
-        await updateProduct(product.id, data, imageFile ?? undefined, product.storagePath);
+        await updateProduct(product.id, data, mixedImages, product.storagePath);
       } else {
-        await addProduct(data, imageFile ?? undefined);
+        await addProduct(data, mixedImages);
       }
 
       onSaved();
@@ -188,35 +242,68 @@ export function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
               {/* Left — Aesthetic Media */}
               <div className="space-y-8">
                 <div>
-                  <label className="block text-[9px] uppercase tracking-[0.3em] font-medium text-white/40 mb-4 ml-1">
-                    Visual Presence
+                  <label className="flex items-center justify-between text-[9px] uppercase tracking-[0.3em] font-medium text-white/40 mb-4 ml-1">
+                    <span>Visual Presence (Gallery)</span>
+                    <span>{gallery.length} / 5</span>
                   </label>
-                  <div
-                    className="relative aspect-square rounded-[1.5rem] overflow-hidden bg-white/[0.02] border border-white/10 cursor-pointer group shadow-inner"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    {imagePreview ? (
-                      <img
-                        src={imagePreview}
-                        alt="curated preview"
-                        className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105 opacity-80 group-hover:opacity-100"
-                      />
-                    ) : (
-                      <div className="absolute inset-0 flex flex-col items-center justify-center text-white/20">
-                        <Upload className="w-10 h-10 mb-4 stroke-1" />
-                        <p className="text-[9px] uppercase tracking-[0.2em] font-bold">Select Masterpiece</p>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    {gallery.map((item, i) => (
+                      <div key={item.id} className="relative aspect-square rounded-2xl overflow-hidden group border border-white/10 bg-white/[0.02]">
+                        <img src={item.type === 'url' ? item.val as string : item.preview} alt="Masterpiece" className={`w-full h-full object-cover ${item.type === 'file' ? 'opacity-80' : ''}`} />
+                        <div className="absolute top-2 left-2 bg-black/80 px-2 py-1 rounded text-[8px] uppercase tracking-wider text-white border border-white/20 backdrop-blur-sm z-10 shadow-[0_0_15px_black]">
+                          {i === 0 ? 'Primary' : `Image ${i+1}`}
+                        </div>
+                        {item.type === 'file' && (
+                          <div className="absolute bottom-2 left-2 bg-white/20 px-2 py-1 rounded text-[8px] uppercase tracking-wider text-white backdrop-blur-md border border-white/30 z-10">
+                            Pending
+                          </div>
+                        )}
+                        
+                        <button
+                          type="button"
+                          onClick={() => removeImage(item.id)}
+                          className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-black/90 rounded-full opacity-0 group-hover:opacity-100 transition-all shadow-lg z-20"
+                        >
+                          <X className="w-3 h-3 text-white" />
+                        </button>
+
+                        <div className="absolute inset-x-0 bottom-2 flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-all z-20">
+                          {i > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => moveImage(i, 'left')}
+                              className="p-1.5 bg-black/60 hover:bg-black/90 rounded-full shadow-[0_4px_15px_black]"
+                            >
+                              <ArrowLeft className="w-3 h-3 text-white" />
+                            </button>
+                          )}
+                          {i < gallery.length - 1 && (
+                            <button
+                              type="button"
+                              onClick={() => moveImage(i, 'right')}
+                              className="p-1.5 bg-black/60 hover:bg-black/90 rounded-full shadow-[0_4px_15px_black]"
+                            >
+                              <ArrowRight className="w-3 h-3 text-white" />
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    )}
-                    <div className="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500">
-                      <div className="bg-white text-black p-4 rounded-full scale-90 group-hover:scale-100 transition-transform duration-500">
-                        <Upload className="w-5 h-5" />
-                      </div>
+                    ))}
+
+                    <div
+                      className="relative aspect-square rounded-[1.5rem] overflow-hidden bg-white/[0.02] border border-white/10 border-dashed cursor-pointer hover:bg-white/5 transition-all flex flex-col items-center justify-center text-white/20 group"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Upload className="w-8 h-8 mb-3 stroke-1 group-hover:scale-110 transition-transform duration-500" />
+                      <p className="text-[8px] uppercase tracking-[0.2em] font-bold">Add Media</p>
                     </div>
                   </div>
                   <input
                     ref={fileInputRef}
                     type="file"
                     accept="image/*"
+                    multiple
                     onChange={handleFileChange}
                     className="hidden"
                   />
@@ -232,8 +319,8 @@ export function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
                     onChange={(e) => {
                       setForm((f) => ({ ...f, image: e.target.value }));
                       if (e.target.value) {
-                        setImagePreview(e.target.value);
-                        setImageFile(null);
+                        setGallery(prev => [...prev, { id: Math.random().toString(), type: 'url', val: e.target.value }]);
+                        setForm((f) => ({ ...f, image: '' }));
                       }
                     }}
                     placeholder="https://cloudinary.com/..."
@@ -293,7 +380,7 @@ export function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
                     <CustomSelect 
                       label="Aesthetic Genre"
                       value={form.category}
-                      options={CATEGORIES}
+                      options={categories.map(c => c.name)}
                       onChange={(val) => setForm(f => ({...f, category: val}))}
                     />
                   </div>
@@ -359,14 +446,14 @@ export function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 bg-white/5 hover:bg-white/10 text-white/70 rounded-full py-5 text-[10px] uppercase tracking-[0.3em] font-bold transition-all border border-white/5"
+                className="flex-1 bg-white/10 hover:bg-white/20 text-white rounded-full py-5 text-xs uppercase tracking-wider font-bold transition-all border border-white/10"
               >
                 Cancel Session
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="flex-1 bg-white text-black rounded-full py-5 text-[10px] uppercase tracking-[0.3em] font-bold hover:bg-zinc-200 transition-all disabled:opacity-50 flex items-center justify-center gap-3 shadow-[0_0_30px_rgba(255,255,255,0.1)]"
+                className="flex-1 bg-white text-black rounded-full py-5 text-xs uppercase tracking-wider font-bold hover:bg-zinc-200 transition-all disabled:opacity-50 flex items-center justify-center gap-3 shadow-[0_0_30px_rgba(255,255,255,0.1)]"
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                 {loading ? 'Committing…' : isEditing ? 'Finalize Masterpiece' : 'Manifest Product'}
