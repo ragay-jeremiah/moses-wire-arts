@@ -4,7 +4,6 @@ import { Instagram, Facebook, MessageCircle } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { fetchSettings } from '../../lib/settings';
 
-const DEFAULT_ARTIST_IMAGE = "https://images.unsplash.com/photo-1731850040444-5194b805f2b6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxnZW9tZXRyaWMlMjB3aXJlJTIwYXJ0JTIwZGVzaWdufGVufDF8fHx8MTc3NDE3NjE2MHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral";
 
 export function ArtistSection() {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -41,13 +40,19 @@ export function ArtistSection() {
             transition={{ duration: 1.2, ease: "easeOut" }}
             className="relative order-2 lg:order-1"
           >
-            <div className="relative rounded-2xl overflow-hidden border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] bg-zinc-900">
-              <ImageWithFallback
-                src={imageUrl || DEFAULT_ARTIST_IMAGE}
-                alt="Moises Ragay - Wire Artist"
-                className="w-full h-[350px] md:h-[700px] object-cover grayscale opacity-80 hover:grayscale-0 hover:opacity-100 transition-all duration-700"
-                loading="lazy"
-              />
+            <div className="relative rounded-2xl overflow-hidden border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] bg-zinc-900 w-full h-[350px] md:h-[700px]">
+              {imageUrl ? (
+                <ImageWithFallback
+                  src={imageUrl}
+                  alt="Moises Ragay - Wire Artist"
+                  className="w-full h-full object-cover grayscale opacity-80 hover:grayscale-0 hover:opacity-100 transition-all duration-700"
+                  loading="lazy"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-tr from-[#0a0a0a] to-[#222] flex items-center justify-center">
+                  <span className="text-white/10 uppercase tracking-[0.5em] text-2xl font-serif">M. R.</span>
+                </div>
+              )}
             </div>
             {/* Experience Badge */}
             <motion.div 

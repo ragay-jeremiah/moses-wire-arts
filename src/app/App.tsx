@@ -12,42 +12,13 @@ import PhotoStackDemo from './components/PhotoStackDemo';
 import { Product } from './components/ProductCard';
 import { ProductGrid } from './components/ProductGrid';
 import { fetchProducts } from '../lib/products';
-import { CircularGallery, GalleryItem } from '../components/ui/circular-gallery';
+import { fetchCategories, Category } from '../lib/categories';
 
 // Lazy load heavy components
 const AdminLogin = lazy(() => import('./components/admin/AdminLogin').then(m => ({ default: m.AdminLogin })));
 const AdminPanel = lazy(() => import('./components/admin/AdminPanel').then(m => ({ default: m.AdminPanel })));
 const CartDrawer = lazy(() => import('./components/CartDrawer').then(m => ({ default: m.CartDrawer })));
 const ProductDetailModal = lazy(() => import('./components/ProductDetailModal').then(m => ({ default: m.ProductDetailModal })));
-
-const FAKE_GALLERY_DATA: GalleryItem[] = [
-  // ... (same as before)
-  {
-    common: 'Lion',
-    binomial: 'Panthera leo',
-    photo: { url: 'https://images.unsplash.com/photo-1583499871880-de841d1ace2a?w=900&auto=format&fit=crop&q=80', text: 'lion', by: 'Clément Roy' }
-  },
-  {
-    common: 'Asiatic elephant',
-    binomial: 'Elephas maximus',
-    photo: { url: 'https://images.unsplash.com/photo-1571406761758-9a3eed5338ef?w=900&auto=format&fit=crop&q=80', text: 'elephant', by: 'Alex Azabache' }
-  },
-  {
-    common: 'Giant panda',
-    binomial: 'Ailuropoda melanoleuca',
-    photo: { url: 'https://images.unsplash.com/photo-1659540181281-1d89d6112832?w=900&auto=format&fit=crop&q=80', text: 'panda', by: 'Jiachen Lin' }
-  },
-  {
-    common: 'Polar bear',
-    binomial: 'Ursus maritimus',
-    photo: { url: 'https://images.unsplash.com/photo-1589648751789-c8ecb7a88bd5?w=900&auto=format&fit=crop&q=80', text: 'polar bear', by: 'Hans-Jurgen Mager' }
-  },
-  {
-    common: 'Cheetah',
-    binomial: 'Acinonyx jubatus',
-    photo: { url: 'https://images.unsplash.com/photo-1541707519942-08fd2f6480ba?w=900&auto=format&fit=crop&q=80', text: 'cheetah', by: 'Mike Bird' }
-  }
-];
 
 interface CartItem extends Product {
   quantity: number;
@@ -138,19 +109,24 @@ export default function App() {
 
   const [products, setProducts] = useState<Product[]>([]);
   const [productsLoaded, setProductsLoaded] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
 
-  const loadProducts = async () => {
+  const loadProductsAndCategories = async () => {
     try {
-      const list = await fetchProducts();
-      setProducts(list);
+      const [productList, categoryList] = await Promise.all([
+        fetchProducts(),
+        fetchCategories()
+      ]);
+      setProducts(productList);
+      setCategories(categoryList);
     } catch (err) {
-      console.error('Failed to load products from Firestore:', err);
+      console.error('Failed to load data from Firestore:', err);
     } finally {
       setProductsLoaded(true);
     }
   };
 
-  useEffect(() => { loadProducts(); }, []);
+  useEffect(() => { loadProductsAndCategories(); }, []);
 
   const [currentView, setCurrentView] = useState<'landing' | 'shop'>('landing');
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -247,19 +223,55 @@ export default function App() {
           <PhotoStackDemo />
         </section>
 
-        <section id="collections" className="py-24 md:py-32 px-6 md:px-16 max-w-[1400px] mx-auto relative z-10">
-          <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-8">
-            <div className="max-w-xl">
-              <p className="text-[10px] tracking-[0.4em] text-white/40 uppercase mb-4">Complete Series</p>
-              <h2 className="text-4xl md:text-6xl font-serif text-white tracking-tight">The Modern Gallery</h2>
+        <section id="collections" className="py-24 md:py-32 px-6 md:px-16 max-w-[1500px] mx-auto relative z-10 block">
+          
+          <div className="mb-12">
+            <p className="text-[10px] tracking-[0.4em] text-white/40 uppercase mb-4">Complete Series</p>
+            <h2 className="text-4xl md:text-6xl font-serif text-white tracking-tight">The Modern Gallery</h2>
+          </div>
+
+          <div className="flex flex-col md:flex-row gap-8 lg:gap-12 relative items-start">
+            
+            {/* Category Sidebar (Desktop) & Scrollable Bar (Mobile) */}
+            <div className="w-full md:w-48 lg:w-64 md:sticky md:top-32 flex-shrink-0 z-20 bg-black/80 md:bg-transparent py-4 md:py-0 border-b border-white/10 md:border-b-0 -mx-6 px-6 md:mx-0 md:px-0 sticky top-20 backdrop-blur-xl md:backdrop-blur-none">
+              <div className="flex flex-row md:flex-col gap-4 md:gap-3 overflow-x-auto md:overflow-visible pb-4 md:pb-0 scrollbar-hide snap-x">
+                
+                <button
+                   onClick={() => setSelectedCategory('All')}
+                   className={`snap-start whitespace-nowrap text-left px-5 py-3 md:px-4 md:py-3 rounded-full md:rounded-xl text-sm transition-all border ${
+                     selectedCategory === 'All'
+                       ? 'bg-white text-black border-white shadow-[0_0_20px_rgba(255,255,255,0.2)] font-bold'
+                       : 'bg-[#111] text-white/60 hover:text-white hover:bg-[#222] border-white/5 font-medium'
+                   }`}
+                >
+                  All Artworks
+                </button>
+                
+                {categories.map((cat) => (
+                  <button
+                    key={cat.id}
+                    onClick={() => setSelectedCategory(cat.name)}
+                    className={`snap-start whitespace-nowrap text-left px-5 py-3 md:px-4 md:py-3 rounded-full md:rounded-xl text-sm transition-all border ${
+                      selectedCategory === cat.name
+                        ? 'bg-white text-black border-white shadow-[0_0_20px_rgba(255,255,255,0.2)] font-bold'
+                        : 'bg-[#111] text-white/60 hover:text-white hover:bg-[#222] border-white/5 font-medium'
+                    }`}
+                  >
+                    {cat.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            {/* Gallery Grid Area */}
+            <div className="flex-1 w-full min-w-0">
+              <ProductGrid 
+                products={filteredProducts}
+                onAddToCart={handleAddToCart}
+                onProductClick={handleProductClick}
+              />
             </div>
           </div>
-          
-          <ProductGrid 
-            products={filteredProducts}
-            onAddToCart={handleAddToCart}
-            onProductClick={handleProductClick}
-          />
         </section>
 
         <section className="py-32 px-6 md:px-16 border-t border-white/5 bg-[#050505]">
