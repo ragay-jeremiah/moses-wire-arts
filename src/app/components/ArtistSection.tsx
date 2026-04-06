@@ -55,7 +55,7 @@ export function ArtistSection() {
                   <ImageWithFallback
                     src={imageUrl || "/artist-fallback.png"}
                     alt="Moses Ragay - Wire Artist"
-                    className="w-full h-full object-cover grayscale brightness-90 transition-all duration-[1.5s] ease-out hover:grayscale-0 hover:brightness-100"
+                    className="w-full h-full object-cover transition-all duration-[1.5s] ease-out"
                     loading="lazy"
                   />
                 </div>
@@ -108,7 +108,7 @@ export function ArtistSection() {
                 <ImageWithFallback
                   src={imageUrl || "/artist-fallback.png"}
                   alt="Moises Ragay - Wire Artist"
-                  className="w-full h-full object-cover grayscale brightness-90 hover:grayscale-0 hover:brightness-100 transition-all duration-[1.5s] ease-out"
+                  className="w-full h-full object-cover transition-all duration-[1.5s] ease-out"
                   loading="lazy"
                 />
                 <div className="absolute bottom-10 left-10 z-20">
