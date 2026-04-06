@@ -218,7 +218,18 @@ export default function App() {
   const totalInquiryItems = inquiryItems.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
-    <div className="min-h-screen text-white bg-black font-sans">
+    <div className="min-h-screen text-white bg-[#030303] font-sans relative overflow-x-hidden">
+      {/* Global Cinematic Wood Texture Background */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-[0.25]" 
+          style={{ backgroundImage: "url('https://images.unsplash.com/photo-1550684376-efcbd6e3f031?auto=format&fit=crop&q=80&w=2000')", filter: 'brightness(0.6) contrast(1.2)' }}
+        />
+        {/* Deep vignette fading to black at the edges */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_0%,_#030303_100%)] opacity-95" />
+        {/* Subtle vertical gradient for depth */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#030303]/80 via-transparent to-[#030303]/90" />
+      </div>
       <FlyToVault />
       <Toaster 
         position="bottom-center" 
@@ -263,7 +274,7 @@ export default function App() {
           document.getElementById('shop-section')?.scrollIntoView({ behavior: 'smooth' });
         }} />
 
-        <section id="shop-section" className="py-32 px-6 relative z-10 bg-black flex items-center justify-center min-h-[70vh] m-0 overflow-hidden border-b border-white/5 border-t">
+        <section id="shop-section" className="py-32 px-6 relative z-10 bg-transparent flex items-center justify-center min-h-[70vh] m-0 overflow-hidden border-b border-[#D4AF37]/10 border-t">
           {/* Vault Atmosphere: Golden Haze */}
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(212,175,55,0.08)_0%,_transparent_70%)] pointer-events-none opacity-60"></div>
           <div className="absolute w-[200vw] h-px bg-[#D4AF37]/5 rotate-12 -top-32 opacity-30"></div>
@@ -299,7 +310,7 @@ export default function App() {
         <ArtistSection />
 
         {/* Featured Gallery Section - New PhotoStack showcase */}
-        <section id="featured" className="w-full bg-black relative z-20">
+        <section id="featured" className="w-full bg-transparent relative z-20">
           <PhotoStackDemo />
         </section>
 
@@ -336,7 +347,7 @@ export default function App() {
 
                 {/* Poetic Gold Divider between categories */}
                 {index < groupedByCategory.length - 1 && (
-                  <div className="w-full py-16 md:py-24 my-8 bg-[#0a0a0a] border-y border-white/5 flex flex-col items-center justify-center text-center px-6">
+                  <div className="w-full py-16 md:py-24 my-8 bg-transparent border-y border-[#D4AF37]/10 flex flex-col items-center justify-center text-center px-6">
                     <div className="w-px h-10 bg-gradient-to-b from-transparent via-[#D4AF37]/50 to-transparent mx-auto mb-8" />
                     <p className="font-serif text-xl md:text-3xl leading-relaxed text-[#FDFBF7]/40 max-w-2xl italic font-light">
                       {getTransitionText(groupedByCategory[index + 1][0])}
@@ -349,7 +360,7 @@ export default function App() {
           })}
         </section>
 
-        <section className="py-32 px-6 md:px-16 border-t border-white/5 bg-[#050505]">
+        <section className="py-32 px-6 md:px-16 border-t border-[#D4AF37]/10 bg-transparent relative z-10">
           <div className="max-w-3xl mx-auto text-center">
             <h2 className="font-serif text-3xl md:text-5xl tracking-tight mb-8">Secure Your Centerpiece</h2>
             <p className="font-sans text-white/60 text-sm leading-relaxed mb-12">

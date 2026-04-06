@@ -1,4 +1,4 @@
-﻿import * as React from "react";
+import * as React from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, ChevronLeft, ChevronRight, ShoppingCart, Heart, Ruler, Package, Shield } from "lucide-react";
 import { cn } from "./ui/utils";
@@ -151,7 +151,7 @@ export function PhotoStackDetail({ isOpen, onClose, data }: PhotoStackDetailProp
               </div>
 
               {/* Right Side: Details */}
-              <div className="w-full md:w-[40%] h-full p-8 md:p-14 flex flex-col justify-between bg-gradient-to-br from-[#0D0D0D] to-[#050505]">
+              <div className="w-full md:w-[40%] h-full p-8 md:p-14 flex flex-col justify-between bg-[#050505]/85 backdrop-blur-3xl border-l border-[#D4AF37]/10">
                 <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
                   <header className="mb-10">
                     <h2 className="text-4xl md:text-5xl lg:text-7xl font-serif text-white mb-2 leading-tight tracking-tight">

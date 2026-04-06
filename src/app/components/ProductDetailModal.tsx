@@ -1,4 +1,4 @@
-﻿import { X, MessageSquarePlus, Ruler, Package, Shield, Info } from 'lucide-react';
+import { X, MessageSquarePlus, Ruler, Package, Shield, Info } from 'lucide-react';
 import { Product } from './ProductCard';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { motion, AnimatePresence } from 'motion/react';
@@ -41,7 +41,7 @@ export function ProductDetailModal({ product, isOpen, onClose, onSelectForInquir
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
                 transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                className="relative bg-[#111] border border-white/10 rounded-3xl shadow-2xl max-w-5xl w-full overflow-hidden text-white"
+                className="relative bg-[#050505]/85 backdrop-blur-3xl border border-[#D4AF37]/10 rounded-3xl shadow-2xl max-w-5xl w-full overflow-hidden text-white"
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Close button */}
@@ -58,7 +58,7 @@ export function ProductDetailModal({ product, isOpen, onClose, onSelectForInquir
                     <ImageWithFallback
                       src={product.image}
                       alt={product.name}
-                      className="w-full h-full object-cover  hover: -0 transition-all duration-1000"
+                      className="w-full h-full object-cover    transition-all duration-1000"
                     />
                     <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md border border-white/10 px-3 py-1 text-[8px] uppercase tracking-[0.2em] font-medium text-[#D4AF37]">
                       {product.category}

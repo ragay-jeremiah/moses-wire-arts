@@ -35,7 +35,7 @@ export function Header({ cartCount, onCartClick, onLogoClick, isAdmin, onAdminCl
   return (
     <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-700 ${
       isScrolled 
-        ? 'bg-black/80 backdrop-blur-md py-4 border-b border-white/5 opacity-100 translate-y-0' 
+        ? 'bg-black/40 backdrop-blur-xl py-4 border-b border-[#D4AF37]/10 opacity-100 translate-y-0' 
         : 'bg-transparent py-6 opacity-0 -translate-y-full pointer-events-none'
     }`}>
       {/* Premium Gold Glow Line */}

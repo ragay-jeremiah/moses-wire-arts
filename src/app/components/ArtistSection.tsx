@@ -26,7 +26,7 @@ export function ArtistSection() {
   }, []);
 
   return (
-    <section id="artist" className="py-24 md:py-32 bg-[#030303] flex items-center min-h-[70vh] relative overflow-hidden">
+    <section id="artist" className="py-24 md:py-32 bg-transparent flex items-center min-h-[70vh] relative overflow-hidden">
       {/* Background Decor */}
       <div className="absolute top-1/2 left-0 w-[800px] h-[800px] bg-white/5 blur-[150px] rounded-full -translate-y-1/2 -translate-x-1/2 pointer-events-none" />
       
@@ -36,7 +36,7 @@ export function ArtistSection() {
            whileInView={{ opacity: 1, y: 0 }}
            viewport={{ once: true }}
            transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-           className="bg-[#080808] border border-white/5 shadow-[0_40px_100px_rgba(0,0,0,1)] p-8 md:p-16 lg:p-20 relative overflow-hidden"
+           className="bg-black/30 backdrop-blur-3xl border border-[#D4AF37]/10 shadow-[0_40px_100px_rgba(0,0,0,0.8)] p-8 md:p-16 lg:p-20 relative overflow-hidden"
         >
           {/* Premium Gold Glow Line */}
           <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#D4AF37]/40 to-transparent" />

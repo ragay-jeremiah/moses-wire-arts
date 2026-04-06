@@ -64,11 +64,11 @@ export function AdminLogin({ onClose, onSuccess }: AdminLoginProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/95 backdrop-blur-xl">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-transparent backdrop-blur-sm">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-[#030303] border border-white/5 w-full max-w-sm mx-4 rounded-none shadow-[0_40px_100px_rgba(0,0,0,1)] p-10 text-white relative overflow-hidden"
+        className="bg-black/30 backdrop-blur-3xl border border-[#D4AF37]/10 w-full max-w-sm mx-4 rounded-none shadow-[0_40px_100px_rgba(0,0,0,0.8)] p-10 text-white relative overflow-hidden"
       >
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#D4AF37]/40 to-transparent" />
 

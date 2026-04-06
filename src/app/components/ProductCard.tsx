@@ -1,4 +1,4 @@
-﻿import { motion } from 'motion/react';
+import { motion } from 'motion/react';
 import { MessageSquarePlus } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { useState } from 'react';
@@ -41,7 +41,7 @@ export function ProductCard({ product, onSelectForInquiry, onProductClick }: Pro
       onMouseLeave={() => setIsHovered(false)}
       onClick={() => onProductClick(product)}
     >
-      <div className="relative overflow-hidden md:rounded-2xl bg-[#0a0a0a] border-y md:border border-white/5 mb-4 md:mb-6 aspect-[4/5] md:aspect-square shadow-xl md:shadow-2xl">
+      <div className="relative overflow-hidden md:rounded-2xl bg-black/20 backdrop-blur-sm border-y md:border border-[#D4AF37]/10 mb-4 md:mb-6 aspect-[4/5] md:aspect-square shadow-xl md:shadow-2xl">
         {/* Atmospheric Bloom (Branding) */}
         <motion.div
            animate={{ 
@@ -61,7 +61,7 @@ export function ProductCard({ product, onSelectForInquiry, onProductClick }: Pro
         <ImageWithFallback
           src={product.image}
           alt={product.name}
-          className="w-full h-full object-cover transition-all duration-1000 group-hover:scale-105 group-hover: -0 opacity-80 group-hover:opacity-100 relative z-10"
+          className="w-full h-full object-cover transition-all duration-1000 group-hover:scale-105   opacity-80 group-hover:opacity-100 relative z-10"
           loading="lazy"
         />
         

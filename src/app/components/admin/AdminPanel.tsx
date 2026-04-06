@@ -1,4 +1,4 @@
-﻿import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { signOut } from 'firebase/auth';
 import { Plus, Pencil, Trash2, LogOut, Loader2, X, RefreshCw, Upload, Video, Image as ImageIcon, Tags, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -241,7 +241,7 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
         transition={{ type: 'spring', damping: 28, stiffness: 260 }}
-        className="fixed right-0 top-0 h-full w-full sm:w-[540px] bg-[#030303] shadow-2xl z-[160] flex flex-col overflow-hidden text-[#FDFBF7]"
+        className="fixed right-0 top-0 h-full w-full sm:w-[540px] bg-[#030303]/85 backdrop-blur-3xl border-l border-[#D4AF37]/10 shadow-2xl z-[160] flex flex-col overflow-hidden text-[#FDFBF7]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Premium Gold Glow Line */}
