@@ -8,6 +8,7 @@ const UPLOAD_PRESET = 'moses_wire_arts';
 export interface SiteSettings {
   heroVideoUrl?: string;
   artistImageUrl?: string;
+  heroImages?: string[];
 }
 
 const DOC_REF = doc(db, 'site', 'settings');
@@ -76,4 +77,40 @@ export async function updateArtistImage(imageFile: File | null, existingUrl?: st
   await setDoc(DOC_REF, { artistImageUrl: imageUrl ?? null }, { merge: true });
 
   return imageUrl;
+}
+
+// ─── Hero Images (Slideshow, up to 5) ────────────────────────────────────────
+export type HeroImageItem =
+  | { type: 'url'; val: string }
+  | { type: 'file'; val: File; preview: string };
+
+export async function updateHeroImages(items: HeroImageItem[]): Promise<string[]> {
+  const urls: string[] = [];
+
+  for (const item of items.slice(0, 5)) {
+    if (item.type === 'url') {
+      urls.push(item.val);
+    } else {
+      const formData = new FormData();
+      formData.append('file', item.val);
+      formData.append('upload_preset', UPLOAD_PRESET);
+      formData.append('folder', 'moses_wire_arts/hero');
+
+      const res = await fetch(
+        `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
+        { method: 'POST', body: formData }
+      );
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error?.message ?? 'Cloudinary hero image upload failed');
+      }
+
+      const data = await res.json();
+      urls.push(data.secure_url as string);
+    }
+  }
+
+  await setDoc(DOC_REF, { heroImages: urls }, { merge: true });
+  return urls;
 }

@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth } from '../firebase';
 import { Toaster, toast } from 'react-hot-toast';
@@ -175,6 +175,16 @@ export default function App() {
     return Array.from(map.entries()); // [category, products[]]
   })();
 
+  const getTransitionText = (nextCategory: string) => {
+    const c = nextCategory.toLowerCase();
+    if (c.includes('tree')) return `"From solitary root to sprawling mastery."`;
+    if (c.includes('bonsai')) return `"Captured moments of infinite stillness."`;
+    if (c.includes('jewelry') || c.includes('pendant')) return `"Wearable fragments of a larger story."`;
+    if (c.includes('wall') || c.includes('art')) return `"Shadows and light, woven into existence."`;
+    if (c.includes('sculpture')) return `"Forms breathing life into empty space."`;
+    return `"Each wire, a dedication. Each form, a story."`;
+  };
+
   const handleAddToInquiry = (product: Product) => {
     const existing = inquiryItems.find((item) => item.id === product.id);
     if (existing) {
@@ -329,7 +339,7 @@ export default function App() {
                   <div className="w-full py-16 md:py-24 my-8 bg-[#0a0a0a] border-y border-white/5 flex flex-col items-center justify-center text-center px-6">
                     <div className="w-px h-10 bg-gradient-to-b from-transparent via-[#D4AF37]/50 to-transparent mx-auto mb-8" />
                     <p className="font-serif text-xl md:text-3xl leading-relaxed text-[#FDFBF7]/40 max-w-2xl italic font-light">
-                      "Each wire, a dedication. Each form, a story."
+                      {getTransitionText(groupedByCategory[index + 1][0])}
                     </p>
                     <div className="w-px h-10 bg-gradient-to-b from-transparent via-[#D4AF37]/50 to-transparent mx-auto mt-8" />
                   </div>

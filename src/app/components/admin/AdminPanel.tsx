@@ -4,7 +4,7 @@ import { Plus, Pencil, Trash2, LogOut, Loader2, X, RefreshCw, Upload, Video, Ima
 import { motion, AnimatePresence } from 'motion/react';
 import { auth } from '../../../firebase';
 import { fetchProducts, deleteProduct, Product } from '../../../lib/products';
-import { fetchSettings, updateHeroVideo, updateArtistImage } from '../../../lib/settings';
+import { fetchSettings, updateHeroVideo, updateArtistImage, updateHeroImages } from '../../../lib/settings';
 import { fetchCategories, addCategory, updateCategory, deleteCategory, Category } from '../../../lib/categories';
 import { ProductForm } from './ProductForm';
 import { toast } from 'react-hot-toast';
@@ -32,11 +32,14 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
 
   // Site Appearance state
   const [heroVideoUrl, setHeroVideoUrl] = useState<string | null>(null);
+  const [heroImages, setHeroImages] = useState<string[]>([]);
   const [artistImageUrl, setArtistImageUrl] = useState<string | null>(null);
   const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [uploadingHeroImages, setUploadingHeroImages] = useState(false);
   const [uploadingArtistImage, setUploadingArtistImage] = useState(false);
   
   const videoInputRef = useRef<HTMLInputElement>(null);
+  const heroImagesInputRef = useRef<HTMLInputElement>(null);
   const artistImageInputRef = useRef<HTMLInputElement>(null);
 
   const loadData = async () => {
@@ -51,6 +54,9 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
       setCategories(catList);
       if (settings?.heroVideoUrl) {
         setHeroVideoUrl(settings.heroVideoUrl);
+      }
+      if (settings?.heroImages) {
+        setHeroImages(settings.heroImages);
       }
       if (settings?.artistImageUrl) {
         setArtistImageUrl(settings.artistImageUrl);
@@ -79,6 +85,43 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
     } finally {
       setUploadingVideo(false);
       if (videoInputRef.current) videoInputRef.current.value = '';
+    }
+  };
+
+  const handleHeroImagesUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    const newItems = files.map(file => ({ type: 'file' as const, val: file, preview: URL.createObjectURL(file) }));
+    const existingItems = heroImages.map(url => ({ type: 'url' as const, val: url }));
+    const combined = [...existingItems, ...newItems].slice(0, 5);
+
+    setUploadingHeroImages(true);
+    try {
+      const urls = await updateHeroImages(combined);
+      setHeroImages(urls);
+      window.dispatchEvent(new CustomEvent('heroImagesUpdated', { detail: urls }));
+      toast.success('Hero slideshow updated live!');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to upload images');
+    } finally {
+      setUploadingHeroImages(false);
+      if (heroImagesInputRef.current) heroImagesInputRef.current.value = '';
+    }
+  };
+
+  const handleClearHeroImages = async () => {
+    if (!window.confirm("Clear all slideshow images and fall back to the hero video?")) return;
+    setUploadingHeroImages(true);
+    try {
+      await updateHeroImages([]);
+      setHeroImages([]);
+      window.dispatchEvent(new CustomEvent('heroImagesUpdated', { detail: [] }));
+      toast.success('Hero slideshow cleared.');
+    } catch (err: any) {
+      toast.error('Failed to clear slideshow');
+    } finally {
+      setUploadingHeroImages(false);
     }
   };
 
@@ -246,7 +289,10 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
                     <div className="p-2 bg-white/5 rounded-lg">
                       <Video className="w-3.5 h-3.5 text-[#D4AF37]" />
                     </div>
-                    <h3 className="text-[9px] uppercase tracking-[0.2em] font-bold text-white/60">Hero Video</h3>
+                    <div>
+                      <h3 className="text-[9px] uppercase tracking-[0.2em] font-bold text-white/60">Hero Video</h3>
+                      <p className="text-[8px] text-white/30 hidden sm:block">Fallback if no slideshow</p>
+                    </div>
                   </div>
                   
                   <div className="flex items-center gap-3">
@@ -271,6 +317,60 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
                       className="px-4 py-2 bg-white/5 border border-white/10 text-[9px] uppercase tracking-widest font-bold rounded-none hover:bg-white/10 transition-all disabled:opacity-50"
                     >
                       {uploadingVideo ? 'Updating...' : 'Change'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Hero Slideshow */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t border-white/5 pt-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-white/5 rounded-lg">
+                      <ImageIcon className="w-3.5 h-3.5 text-[#D4AF37]" />
+                    </div>
+                    <div>
+                      <h3 className="text-[9px] uppercase tracking-[0.2em] font-bold text-white/60">Hero Slideshow</h3>
+                      <p className="text-[8px] text-white/30 hidden sm:block">{heroImages.length}/5 images (Overrides video)</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-3 flex-wrap justify-end">
+                    <div className="flex items-center gap-1">
+                      {heroImages.map((img, idx) => (
+                         <div key={idx} className="relative w-10 h-10 bg-black rounded border border-white/10 overflow-hidden flex-shrink-0">
+                           <img src={img} className="w-full h-full object-cover opacity-60" alt="Hero Slide" />
+                         </div>
+                      ))}
+                      {heroImages.length === 0 && (
+                        <div className="w-10 h-10 flex items-center justify-center bg-white/5 text-[7px] border border-white/10 rounded uppercase text-white/20">Empty</div>
+                      )}
+                    </div>
+                    
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      multiple
+                      ref={heroImagesInputRef}
+                      onChange={handleHeroImagesUpload}
+                      className="hidden" 
+                    />
+                    
+                    {heroImages.length > 0 && (
+                      <button
+                        onClick={handleClearHeroImages}
+                        disabled={uploadingHeroImages}
+                        className="p-2 text-white/20 hover:text-red-500 transition-colors"
+                        title="Clear Slideshow"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                    
+                    <button
+                      onClick={() => heroImagesInputRef.current?.click()}
+                      disabled={uploadingHeroImages || heroImages.length >= 5}
+                      className="px-4 py-2 bg-white/5 border border-white/10 text-[9px] uppercase tracking-widest font-bold rounded-none hover:bg-white/10 transition-all disabled:opacity-50"
+                    >
+                      {uploadingHeroImages ? 'Uploading...' : 'Add Images'}
                     </button>
                   </div>
                 </div>
