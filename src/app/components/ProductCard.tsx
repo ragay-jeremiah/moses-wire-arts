@@ -61,7 +61,7 @@ export function ProductCard({ product, onSelectForInquiry, onProductClick }: Pro
         <ImageWithFallback
           src={product.image}
           alt={product.name}
-          className="w-full h-full object-cover transition-all duration-1000 group-hover:scale-105 grayscale-[0.3] group-hover:grayscale-0 opacity-80 group-hover:opacity-100 relative z-10"
+          className="w-full h-full object-cover transition-all duration-1000 group-hover:scale-105 group-hover: -0 opacity-80 group-hover:opacity-100 relative z-10"
           loading="lazy"
         />
         

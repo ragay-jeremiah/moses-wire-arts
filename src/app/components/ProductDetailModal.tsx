@@ -58,7 +58,7 @@ export function ProductDetailModal({ product, isOpen, onClose, onSelectForInquir
                     <ImageWithFallback
                       src={product.image}
                       alt={product.name}
-                      className="w-full h-full object-cover grayscale brightness-90 hover:grayscale-0 transition-all duration-1000"
+                      className="w-full h-full object-cover  hover: -0 transition-all duration-1000"
                     />
                     <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md border border-white/10 px-3 py-1 text-[8px] uppercase tracking-[0.2em] font-medium text-[#D4AF37]">
                       {product.category}

@@ -1,4 +1,4 @@
-import { X, Minus, Plus, MessageSquare, Trash2 } from 'lucide-react';
+﻿import { X, Minus, Plus, MessageSquare, Trash2 } from 'lucide-react';
 import { Product } from './ProductCard';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { motion, AnimatePresence } from 'motion/react';
@@ -77,7 +77,7 @@ export function InquiryDrawer({ isOpen, onClose, items, onUpdateQuantity, onRemo
                         <ImageWithFallback
                           src={item.image}
                           alt={item.name}
-                          className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700"
+                          className="w-full h-full object-cover group-hover: -0 transition-all duration-700"
                         />
                       </div>
                       

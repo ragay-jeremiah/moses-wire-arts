@@ -7,6 +7,7 @@ import { fetchProducts, deleteProduct, Product } from '../../../lib/products';
 import { fetchSettings, updateHeroVideo, updateArtistImage, updateHeroImages } from '../../../lib/settings';
 import { fetchCategories, addCategory, updateCategory, deleteCategory, Category } from '../../../lib/categories';
 import { ProductForm } from './ProductForm';
+import { ImageCropperModal } from './ImageCropperModal';
 import { toast } from 'react-hot-toast';
 
 interface AdminPanelProps {
@@ -37,6 +38,7 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [uploadingHeroImages, setUploadingHeroImages] = useState(false);
   const [uploadingArtistImage, setUploadingArtistImage] = useState(false);
+  const [pendingArtistImageSrc, setPendingArtistImageSrc] = useState<string | null>(null);
   
   const videoInputRef = useRef<HTMLInputElement>(null);
   const heroImagesInputRef = useRef<HTMLInputElement>(null);
@@ -128,10 +130,19 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
   const handleArtistImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    
+    // Create an object URL for the cropper modal
+    const localUrl = URL.createObjectURL(file);
+    setPendingArtistImageSrc(localUrl);
+    
+    if (artistImageInputRef.current) artistImageInputRef.current.value = '';
+  };
 
+  const handleCropComplete = async (croppedFile: File) => {
+    setPendingArtistImageSrc(null);
     setUploadingArtistImage(true);
     try {
-      const url = await updateArtistImage(file, artistImageUrl ?? undefined);
+      const url = await updateArtistImage(croppedFile, artistImageUrl ?? undefined);
       if (url) {
         setArtistImageUrl(url);
         window.dispatchEvent(new CustomEvent('artistImageUpdated', { detail: url }));
@@ -141,7 +152,6 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
       toast.error(err.message || 'Failed to upload image');
     } finally {
       setUploadingArtistImage(false);
-      if (artistImageInputRef.current) artistImageInputRef.current.value = '';
     }
   };
 
@@ -387,7 +397,7 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
                   <div className="flex items-center gap-3">
                     <div className="relative w-10 h-10 bg-white/5 rounded border border-white/10 overflow-hidden flex-shrink-0">
                       {artistImageUrl ? (
-                        <img src={artistImageUrl} className="w-full h-full object-cover grayscale" alt="Profile" />
+                        <img src={artistImageUrl} className="w-full h-full object-cover " alt="Profile" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-[7px] uppercase text-white/20">Empty</div>
                       )}
@@ -466,7 +476,7 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
                               <img
                                 src={product.image}
                                 alt={product.name}
-                                className="w-full h-full object-cover grayscale opacity-60"
+                                className="w-full h-full object-cover opacity-60"
                               />
                             )}
                           </div>

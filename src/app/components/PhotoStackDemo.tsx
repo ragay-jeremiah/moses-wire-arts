@@ -1,4 +1,4 @@
-import * as React from "react";
+﻿import * as React from "react";
 import { PhotoStackCard } from "../../components/ui/image-showcase";
 import { PhotoStackDetail } from "./PhotoStackDetail";
 import { motion } from "motion/react";
@@ -106,7 +106,7 @@ export default function PhotoStackCardDemo() {
               category={mem.category}
               isActive={index === activeIndex}
               onClick={() => handleCardClick(mem, index)}
-              className={index !== activeIndex ? "hidden md:flex grayscale opacity-40" : "flex"}
+              className={index !== activeIndex ? "hidden md:flex opacity-40" : "flex"}
             />
           </motion.div>
         ))}
