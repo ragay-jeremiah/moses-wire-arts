@@ -2,7 +2,11 @@ import { Instagram, Facebook, MessageCircle } from 'lucide-react';
 
 export function Footer() {
   return (
-    <footer className="bg-black text-white py-16">
+    <footer className="bg-black text-white py-16 relative overflow-hidden border-t border-white/5">
+      {/* Glistening Horizon Accent */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-px bg-gradient-to-r from-transparent via-[#D4AF37]/40 to-transparent" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-[1px] bg-[#D4AF37]/20 blur-sm pointer-events-none" />
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
           {/* Brand */}

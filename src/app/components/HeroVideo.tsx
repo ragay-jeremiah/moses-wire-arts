@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, useScroll, useTransform } from 'motion/react';
-import { Instagram, Facebook, MessageCircle } from 'lucide-react';
 import { fetchSettings } from '../../lib/settings';
 
 export function HeroVideo({ onNavigateToShop }: { onNavigateToShop?: () => void }) {
@@ -8,17 +7,9 @@ export function HeroVideo({ onNavigateToShop }: { onNavigateToShop?: () => void 
   const [loading, setLoading] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
   
-  // Scroll-linked animations for CTAs
   const { scrollY } = useScroll();
-  const ctaOpacity = useTransform(scrollY, [20, 120], [0, 1]);
-  const ctaTranslateY = useTransform(scrollY, [20, 120], [20, 0]);
-
-  // Handle slow motion for a more premium, serene feel
-  useEffect(() => {
-    if (videoRef.current) {
-        videoRef.current.playbackRate = 0.6; // 60% speed for elegant "slow spin"
-    }
-  }, [videoUrl, loading]);
+  const opacity = useTransform(scrollY, [0, 400], [1, 0]);
+  const scale = useTransform(scrollY, [0, 400], [1, 1.05]);
 
   useEffect(() => {
     async function init() {
@@ -50,126 +41,86 @@ export function HeroVideo({ onNavigateToShop }: { onNavigateToShop?: () => void 
       }
     };
     window.addEventListener('heroVideoUpdated', handleVideoUpdate);
-
-    return () => {
-      window.removeEventListener('heroVideoUpdated', handleVideoUpdate);
-    };
+    return () => window.removeEventListener('heroVideoUpdated', handleVideoUpdate);
   }, []);
 
   return (
-    <div className="relative w-full h-screen bg-black overflow-hidden flex items-center justify-center">
-      {/* Fallback pattern while waiting for connection or if no video */}
-      <div className="absolute inset-0 premium-grain opacity-20" />
+    <div className="relative w-full h-[100dvh] bg-black overflow-hidden flex flex-col items-center">
       
-      {/* Native Video Player */}
-      <AnimatePresence mode="wait">
-        {videoUrl ? (
-          <motion.video
-            key={videoUrl}
-            ref={videoRef}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 1.5 }}
-            src={videoUrl}
-            poster="/hero-poster.png"
-            autoPlay
-            loop
-            muted
-            playsInline
-            preload="auto"
-            className="absolute inset-0 w-full h-full object-cover object-[center_85%] md:object-bottom z-0"
-            onLoadedMetadata={() => {
-              if (videoRef.current) videoRef.current.playbackRate = 0.6;
-            }}
-          />
-        ) : (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="absolute inset-0 z-0 bg-cover bg-center grayscale opacity-40 transition-opacity duration-1000"
-            style={{ backgroundImage: 'url("/hero-poster.png")' }}
-          />
-        )}
-      </AnimatePresence>
+      {/* Immersive Video/Poster Layer */}
+      <motion.div style={{ opacity, scale }} className="absolute inset-0 w-full h-full">
+        <AnimatePresence mode="wait">
+          {videoUrl ? (
+            <motion.video
+              key={videoUrl}
+              ref={videoRef}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.7 }}
+              transition={{ duration: 2 }}
+              src={videoUrl}
+              poster="/hero-poster.png"
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="absolute inset-0 w-full h-full object-center md:object-cover z-0 lg:scale-[1.15]"
+              onLoadedMetadata={() => { if (videoRef.current) videoRef.current.playbackRate = 0.6; }}
+            />
+          ) : (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.7 }}
+              transition={{ duration: 2 }}
+              className="absolute inset-0 w-full h-full bg-center bg-no-repeat bg-contain md:bg-cover z-0 saturate-50 lg:scale-[1.15]"
+              style={{ backgroundImage: 'url("/hero-poster.png")' }}
+            />
+          )}
+        </AnimatePresence>
+      </motion.div>
 
-      {/* Lowkey Watermark Cover - Opaque black core with heavily blurred edges to completely swallow the text without looking like a box */}
-      <div className="absolute bottom-[2%] right-[2%] md:bottom-[5%] md:right-[5%] w-[300px] h-[150px] bg-black blur-3xl z-10 pointer-events-none rounded-full opacity-100" />
-      <div className="absolute bottom-[4%] right-[4%] md:bottom-[8%] md:right-[8%] w-[200px] h-[100px] bg-black blur-2xl z-10 pointer-events-none rounded-full opacity-100" />
+      {/* Extreme Cinematic Vignette */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black z-10" />
+      <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-transparent to-black/80 z-10" />
 
-      {/* Elegant Vignette to darken edges for text readability */}
-      <div className="absolute inset-0 premium-vignette opacity-80 z-10 pointer-events-none" />
-
-      {/* Main Content Overlay - Title Area pushed up to clear the artwork */}
-      <div className="relative z-20 w-full max-w-7xl mx-auto px-6 h-full flex flex-col items-center justify-start pt-[12vh] text-center">
+      {/* Web & Mobile: Text at Top, Art in Center */}
+      <div className="relative z-20 w-full px-6 flex flex-col items-center text-center pt-24 md:pt-32 lg:pt-40">
         <motion.div
-           initial={{ opacity: 0, y: 30 }}
-           animate={{ opacity: 1, y: 0 }}
-           transition={{ duration: 1.5, ease: [0.16, 1, 0.3, 1], delay: 0.5 }}
+           initial={{ opacity: 0, scale: 0.98 }}
+           animate={{ opacity: 1, scale: 1 }}
+           transition={{ duration: 2.5, ease: [0.16, 1, 0.3, 1], delay: 2.5 }}
         >
-          {/* Subtle logo/branding indicator */}
-          <div className="flex justify-center mb-6 opacity-60">
-            <svg width="32" height="32" viewBox="0 0 100 100" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-sm">
-                <path d="M20,50 C20,20 80,20 80,50 C80,80 20,80 20,50 C20,30 65,30 65,50 C65,70 35,70 35,50 C35,40 55,40 55,50 C55,60 45,60 45,50" />
-            </svg>
-          </div>
-
-          <h1 className="font-serif text-5xl md:text-8xl lg:text-9xl tracking-tight text-white mb-6 drop-shadow-2xl">
-            Moses Wire Arts
+          <p className="text-[#D4AF37] uppercase tracking-[0.5em] text-[7px] md:text-[9px] mb-3 md:mb-6 drop-shadow-lg font-bold">Moses Wire Arts</p>
+          <h1 className="font-serif text-3xl sm:text-5xl md:text-7xl lg:text-8xl tracking-tight md:tracking-tighter text-[#FDFBF7] mb-3 md:mb-6 drop-shadow-2xl leading-[1.1] whitespace-nowrap md:whitespace-normal">
+            Rooted in Craft.<br/>Shaped by Time.
           </h1>
-          
-          <p className="font-sans text-[10px] md:text-sm uppercase tracking-[0.4em] font-medium text-white/70 mb-12 drop-shadow-lg">
-            Rooted in Mastery. Crafted for the Modern Space.
+          <p className="max-w-[240px] sm:max-w-xs md:max-w-md mx-auto text-[#FDFBF7]/70 font-sans text-[10px] md:text-xs font-light leading-snug md:leading-relaxed mb-6 md:mb-12">
+            Handcrafted wire art rooted in growth, shaped into timeless forms.
           </p>
+
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 2, ease: [0.16, 1, 0.3, 1], delay: 4.5 }}
+          >
+            <button 
+              onClick={onNavigateToShop}
+              className="group relative overflow-hidden px-8 py-3.5 md:px-10 md:py-4 bg-[#D4AF37]/10 backdrop-blur-md border border-[#D4AF37]/30 text-[#FDFBF7] uppercase tracking-[0.2em] text-[8px] md:text-xs font-bold transition-all hover:bg-[#D4AF37]/20 shadow-[0_0_20px_rgba(212,175,55,0.05)]"
+            >
+              <span className="relative z-10">Explore the Collection</span>
+            </button>
+          </motion.div>
         </motion.div>
       </div>
 
-      {/* Scroll-Revealed CTA Container - Absolute bottom to stay clear of the central art */}
+      {/* Subliminal Scroll Guide */}
       <motion.div 
-        style={{ 
-          opacity: ctaOpacity,
-          y: ctaTranslateY
-        }}
-        className="absolute bottom-32 left-0 right-0 z-30 flex flex-col items-center gap-10 px-6"
-      >
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-6 w-full max-w-2xl">
-          <button 
-            onClick={onNavigateToShop}
-            className="w-full sm:w-auto px-12 py-5 bg-white text-black text-[10px] uppercase tracking-[0.3em] font-bold hover:bg-zinc-100 transition-all rounded-full shadow-2xl transform hover:scale-105"
-          >
-            Explore Collection
-          </button>
-          <a 
-            href="https://m.me/MosesRagay"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full sm:w-auto flex items-center justify-center gap-3 px-12 py-5 border border-white/20 bg-black/20 backdrop-blur-md text-white text-[10px] uppercase tracking-[0.3em] font-bold hover:bg-white/10 hover:border-white/50 transition-all rounded-full shadow-2xl transform hover:scale-105"
-          >
-            <MessageCircle size={16} />
-            Message Designer
-          </a>
-        </div>
-
-        {/* Social Links inside the revealed group */}
-        <div className="flex gap-8 justify-center">
-          <a href="https://www.instagram.com/moseswireartworks/" target="_blank" rel="noopener noreferrer" className="text-white/40 hover:text-white transition-colors" title="Follow on Instagram">
-             <Instagram strokeWidth={1} size={24} />
-          </a>
-          <a href="https://www.facebook.com/MosesRagay" target="_blank" rel="noopener noreferrer" className="text-white/40 hover:text-white transition-colors" title="Follow on Facebook">
-             <Facebook strokeWidth={1} size={24} />
-          </a>
-        </div>
-      </motion.div>
-
-      {/* Scroll indicator line */}
-      <motion.div 
-        className="absolute bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center gap-4 z-20 opacity-40"
+        className="hidden md:flex absolute bottom-12 left-1/2 -translate-x-1/2 flex-col items-center gap-4 z-20 opacity-40 mix-blend-overlay"
         initial={{ opacity: 0 }}
-        animate={{ opacity: 0.4 }}
-        transition={{ delay: 2, duration: 2 }}
+        animate={{ opacity: 0.6 }}
+        transition={{ delay: 2.5, duration: 2 }}
       >
-        <div className="w-[1px] h-16 bg-gradient-to-b from-white to-transparent" />
+        <div className="w-[1px] h-24 bg-gradient-to-b from-white to-transparent" />
       </motion.div>
     </div>
   );
 }
-

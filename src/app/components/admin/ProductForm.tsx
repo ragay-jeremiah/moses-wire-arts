@@ -207,33 +207,34 @@ export function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
+      <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/95 backdrop-blur-xl p-4 overflow-y-auto">
         <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 30 }}
+          initial={{ opacity: 0, scale: 0.98, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          transition={{ type: 'spring', damping: 28, stiffness: 220 }}
-          className="bg-zinc-950/95 border border-white/10 w-full max-w-3xl rounded-[2rem] shadow-[0_0_100px_rgba(0,0,0,0.8)] overflow-hidden relative"
+          exit={{ opacity: 0, scale: 0.98 }}
+          className="bg-[#030303] border border-white/5 w-full max-w-2xl shadow-[0_0_100px_rgba(0,0,0,1)] flex flex-col relative my-auto"
         >
           {/* Background Highlight */}
-          <div className="absolute top-0 left-1/4 w-1/2 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+          <div className="absolute top-0 left-1/4 w-1/2 h-px bg-gradient-to-r from-transparent via-[#D4AF37]/40 to-transparent" />
           
-          {/* Header */}
-          <div className="flex items-center justify-between px-10 py-10">
+          {/* Header - Premium Minimal */}
+          <div className="flex items-center justify-between px-8 py-8 border-b border-white/5">
             <div>
-              <h2 className="font-serif text-3xl text-white tracking-tight flex items-center gap-3">
-                <Sparkles className="w-5 h-5 text-white/30" />
+              <h2 className="font-serif text-2xl text-white tracking-tight flex items-center gap-3">
                 {isEditing ? 'Curate Creation' : 'Manifest Product'}
               </h2>
-              <p className="text-[10px] uppercase tracking-[0.4em] text-white/30 mt-2 font-medium">
-                {isEditing ? `Refining: ${product.name}` : 'Documenting a new masterpiece'}
-              </p>
+              <div className="flex items-center gap-2 mt-2">
+                <span className="w-1 h-1 bg-[#D4AF37] rounded-full" />
+                <p className="text-[8px] uppercase tracking-[0.4em] text-[#D4AF37] font-bold">
+                  {isEditing ? 'Refining Archive' : 'New Masterpiece'}
+                </p>
+              </div>
             </div>
             <button 
               onClick={onClose} 
-              className="p-3 bg-white/5 hover:bg-white/10 text-white/40 hover:text-white rounded-full transition-all border border-white/5 rotate-0 hover:rotate-90 duration-500"
+              className="p-2 text-white/20 hover:text-white transition-colors"
             >
-              <X className="w-5 h-5" />
+              <X className="w-5 h-5" strokeWidth={1} />
             </button>
           </div>
 
