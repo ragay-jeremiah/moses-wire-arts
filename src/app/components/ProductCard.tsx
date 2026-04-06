@@ -1,4 +1,4 @@
-import { motion } from 'motion/react';
+﻿import { motion } from 'motion/react';
 import { MessageSquarePlus } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { useState } from 'react';
@@ -99,7 +99,7 @@ export function ProductCard({ product, onSelectForInquiry, onProductClick }: Pro
             <h3 className="font-serif text-sm leading-tight md:text-3xl tracking-tight text-white group-hover:text-white/80 transition-colors line-clamp-2">{product.name}</h3>
             <p className="font-sans text-[8px] md:text-[10px] uppercase tracking-[0.2em] md:tracking-[0.3em] text-white/40 mt-0.5 font-semibold">By {product.artist}</p>
           </div>
-          <p className="font-serif text-sm md:text-xl text-[#D4AF37] whitespace-nowrap mt-1 md:mt-0">${product.price.toLocaleString()}</p>
+          <p className="font-serif text-sm md:text-xl text-[#D4AF37] whitespace-nowrap mt-1 md:mt-0">₱{product.price.toLocaleString()}</p>
         </div>
         
         <div className="md:hidden mt-2">

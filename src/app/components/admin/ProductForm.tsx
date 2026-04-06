@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+﻿import { useState, useRef, useEffect } from 'react';
 import { X, Upload, Loader2, ChevronDown, Check, Sparkles, ArrowLeft, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Product, addProduct, updateProduct } from '../../../lib/products';
@@ -9,6 +9,7 @@ export type GalleryItem =
   | { id: string; type: 'file'; val: File; preview: string };
 
 interface ProductFormProps {
+  products?: Product[];
   product?: Product | null;
   onClose: () => void;
   onSaved: () => void;
@@ -89,7 +90,7 @@ function CustomSelect({ value, onChange, options, label }: { value: string, onCh
   );
 }
 
-export function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
+export function ProductForm({ product, products, onClose, onSaved }: ProductFormProps) {
   const isEditing = !!product;
   const [form, setForm] = useState({
     name: product?.name ?? EMPTY_FORM.name,
@@ -126,6 +127,24 @@ export function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
     }
     loadCategories();
   }, [isEditing]);
+
+  useEffect(() => {
+    if (!isEditing && form.category && products && products.length > 0) {
+      const recentInCategory = products.find(p => p.category === form.category);
+      if (recentInCategory) {
+        setForm(f => {
+          const update = { ...f };
+          if (f.description === EMPTY_FORM.description) update.description = recentInCategory.description || EMPTY_FORM.description;
+          if (f.materials === EMPTY_FORM.materials) update.materials = recentInCategory.materials || EMPTY_FORM.materials;
+          if (f.dimensions === EMPTY_FORM.dimensions) update.dimensions = recentInCategory.dimensions || EMPTY_FORM.dimensions;
+          if (f.authenticity === EMPTY_FORM.authenticity) update.authenticity = recentInCategory.authenticity || EMPTY_FORM.authenticity;
+          if (f.shipping === EMPTY_FORM.shipping) update.shipping = recentInCategory.shipping || EMPTY_FORM.shipping;
+          if (f.artist === EMPTY_FORM.artist) update.artist = recentInCategory.artist || EMPTY_FORM.artist;
+          return update;
+        });
+      }
+    }
+  }, [form.category, isEditing, products]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -238,8 +257,8 @@ export function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
             </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="px-10 pb-10 max-h-[75vh] overflow-y-auto custom-scrollbar">
-            <div className="grid md:grid-cols-2 gap-10">
+          <form onSubmit={handleSubmit} className="px-5 md:px-10 pb-8 md:pb-10 max-h-[75vh] overflow-y-auto custom-scrollbar">
+            <div className="grid md:grid-cols-2 gap-8 md:gap-10">
               {/* Left — Aesthetic Media */}
               <div className="space-y-8">
                 <div>
@@ -248,7 +267,7 @@ export function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
                     <span>{gallery.length} / 5</span>
                   </label>
                   
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 md:gap-4">
                     {gallery.map((item, i) => (
                       <div key={item.id} className="relative aspect-square rounded-2xl overflow-hidden group border border-white/10 bg-white/[0.02]">
                         <img src={item.type === 'url' ? item.val as string : item.preview} alt="Masterpiece" className={`w-full h-full object-cover ${item.type === 'file' ? 'opacity-80' : ''}`} />
@@ -342,7 +361,10 @@ export function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
                       type="text"
                       required
                       value={form.name}
-                      onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\b\w/g, c => c.toUpperCase());
+                        setForm((f) => ({ ...f, name: val }));
+                      }}
                       placeholder="e.g. Celestial Orbit"
                       className="w-full bg-transparent border-b border-white/10 py-3 text-2xl font-serif text-white placeholder:text-white/10 focus:outline-none focus:border-white/40 transition-all"
                     />
@@ -366,7 +388,7 @@ export function ProductForm({ product, onClose, onSaved }: ProductFormProps) {
                   <div className="grid grid-cols-2 gap-6">
                     <div>
                       <label className="block text-[9px] uppercase tracking-[0.3em] font-medium text-white/40 mb-3 ml-1">
-                        Price (USD)
+                        Price (PHP ₱)
                       </label>
                       <input
                         type="number"

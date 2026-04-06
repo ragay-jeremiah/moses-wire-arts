@@ -1,4 +1,4 @@
-import * as React from "react";
+﻿import * as React from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, ChevronLeft, ChevronRight, ShoppingCart, Heart, Ruler, Package, Shield } from "lucide-react";
 import { cn } from "./ui/utils";
@@ -164,7 +164,7 @@ export function PhotoStackDetail({ isOpen, onClose, data }: PhotoStackDetailProp
 
                   <div className="mb-12">
                     <p className="text-2xl md:text-3xl font-serif italic text-white/90 mb-10">
-                      ${price.toLocaleString()}
+                      ₱{price.toLocaleString()}
                     </p>
 
                     <div className="space-y-10">

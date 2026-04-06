@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+﻿import { useEffect, useState, useRef } from 'react';
 import { signOut } from 'firebase/auth';
 import { Plus, Pencil, Trash2, LogOut, Loader2, X, RefreshCw, Upload, Video, Image as ImageIcon, Tags, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -474,7 +474,7 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
                           <div className="flex-1 min-w-0">
                             <p className="text-[11px] font-serif tracking-tight text-white/90 truncate">{product.name}</p>
                             <p className="text-[8px] uppercase tracking-[0.1em] text-white/20 truncate">
-                              {product.category} · ${product.price.toLocaleString()}
+                              {product.category} · ₱{product.price.toLocaleString()}
                             </p>
                           </div>
 
@@ -600,6 +600,7 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
       {editingProduct !== undefined && (
         <ProductForm
           product={editingProduct}
+          products={products}
           onClose={() => setEditingProduct(undefined)}
           onSaved={handleSaved}
         />

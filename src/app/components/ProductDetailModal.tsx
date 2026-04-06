@@ -1,4 +1,4 @@
-import { X, MessageSquarePlus, Ruler, Package, Shield, Info } from 'lucide-react';
+﻿import { X, MessageSquarePlus, Ruler, Package, Shield, Info } from 'lucide-react';
 import { Product } from './ProductCard';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { motion, AnimatePresence } from 'motion/react';
@@ -70,7 +70,7 @@ export function ProductDetailModal({ product, isOpen, onClose, onSelectForInquir
                     <div className="flex-1">
                       <div className="flex justify-between items-start mb-1">
                         <h2 className="font-serif text-2xl md:text-5xl tracking-tight text-[#FDFBF7]">{product.name}</h2>
-                        <p className="font-serif text-xl md:text-3xl italic text-[#D4AF37] opacity-90">${product.price.toLocaleString()}</p>
+                        <p className="font-serif text-xl md:text-3xl italic text-[#D4AF37] opacity-90">₱{product.price.toLocaleString()}</p>
                       </div>
                       <p className="font-sans text-[9px] uppercase tracking-[0.2em] text-[#FDFBF7]/30 font-medium mb-6">Masterpiece by {product.artist}</p>
 
