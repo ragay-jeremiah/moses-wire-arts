@@ -13,6 +13,8 @@ import {
 import { db } from '../firebase';
 
 // ─── Cloudinary Config ─────────────────────────────────────────
+const CLOUD_NAME = 'dvbgohxka';
+const UPLOAD_PRESET = 'moses_wire_arts';
 
 export interface Product {
   id: string;
