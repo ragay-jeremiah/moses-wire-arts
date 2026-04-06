@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from 'react';
+﻿import { useState, useEffect, lazy, Suspense } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth } from '../firebase';
 import { Toaster, toast } from 'react-hot-toast';
@@ -156,8 +156,24 @@ export default function App() {
     else setCurrentView('landing');
   }, [showAdminPanel]);
 
-  const signatureTrees = products.filter(p => p.category.toLowerCase().includes('tree'));
-  const otherCreations = products.filter(p => !p.category.toLowerCase().includes('tree'));
+  // Group products by category, Trees first as flagship
+  const groupedByCategory = (() => {
+    const map = new Map<string, Product[]>();
+    // Ensure Trees comes first
+    const sorted = [...products].sort((a, b) => {
+      const aIsTree = a.category.toLowerCase().includes('tree');
+      const bIsTree = b.category.toLowerCase().includes('tree');
+      if (aIsTree && !bIsTree) return -1;
+      if (!aIsTree && bIsTree) return 1;
+      return a.category.localeCompare(b.category);
+    });
+    for (const product of sorted) {
+      const cat = product.category.trim();
+      if (!map.has(cat)) map.set(cat, []);
+      map.get(cat)!.push(product);
+    }
+    return Array.from(map.entries()); // [category, products[]]
+  })();
 
   const handleAddToInquiry = (product: Product) => {
     const existing = inquiryItems.find((item) => item.id === product.id);
@@ -278,50 +294,49 @@ export default function App() {
         </section>
 
         <section id="collections" className="py-24 md:py-32 max-w-[1500px] mx-auto relative z-10 block">
-          
-          <div className="relative mb-16 md:mb-24 px-6 md:px-16 text-center">
-            {/* Glistening Horizon Accent */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-px bg-gradient-to-r from-transparent via-[#D4AF37]/50 to-transparent -translate-y-12" />
-            
-            <p className="text-[10px] tracking-[0.4em] text-[#D4AF37] uppercase mb-4 font-bold">Signature Collection</p>
-            <h2 className="text-4xl md:text-6xl font-serif text-white tracking-tight">Wire Art Trees</h2>
-            <p className="font-sans text-sm text-white/50 mt-6 max-w-xl mx-auto">Where our story begins. Each piece grows intentionally from a solitary root into complex, sprawling mastery.</p>
-          </div>
+          {groupedByCategory.map(([category, categoryProducts], index) => {
+            const isFirst = index === 0;
+            const isTree = category.toLowerCase().includes('tree');
+            return (
+              <div key={category}>
+                {/* Category Header */}
+                <div className={`relative px-6 md:px-16 text-center ${isFirst ? 'mb-16 md:mb-24' : 'mb-12 md:mb-16'}`}>
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-px bg-gradient-to-r from-transparent via-[#D4AF37]/50 to-transparent -translate-y-8 md:-translate-y-12" />
+                  <p className={`text-[10px] tracking-[0.4em] uppercase mb-4 font-bold ${isFirst ? 'text-[#D4AF37]' : 'text-white/40'}`}>
+                    {isFirst && isTree ? 'Signature Collection' : 'The Collection'}
+                  </p>
+                  <h2 className={`font-serif tracking-tight text-white ${isFirst ? 'text-4xl md:text-6xl' : 'text-3xl md:text-5xl'}`}>
+                    {category}
+                  </h2>
+                  {isFirst && isTree && (
+                    <p className="font-sans text-sm text-white/50 mt-6 max-w-xl mx-auto">
+                      Where our story begins. Each piece grows intentionally from a solitary root into complex, sprawling mastery.
+                    </p>
+                  )}
+                </div>
 
-          <div className="w-full relative px-6 md:px-16">
-            <ProductGrid 
-              products={signatureTrees}
-              onSelectForInquiry={handleAddToInquiry}
-              onProductClick={handleProductClick}
-            />
-          </div>
+                {/* Product Grid */}
+                <div className="w-full relative px-6 md:px-16">
+                  <ProductGrid
+                    products={categoryProducts}
+                    onSelectForInquiry={handleAddToInquiry}
+                    onProductClick={handleProductClick}
+                  />
+                </div>
 
-          {/* Poetic Transition Block */}
-          {otherCreations.length > 0 && (
-            <div className="w-full py-24 md:py-32 my-12 bg-[#0a0a0a] border-y border-white/5 flex flex-col items-center justify-center text-center px-6">
-              <p className="font-serif text-2xl md:text-4xl leading-relaxed text-[#FDFBF7] max-w-3xl drop-shadow-lg italic font-light">
-                "From trees that symbolize growth to creatures that capture life and imagination—each piece is shaped with the same devotion to craft."
-              </p>
-            </div>
-          )}
-
-          {/* Secondary Collection */}
-          {otherCreations.length > 0 && (
-            <div className="mt-12 px-6 md:px-16">
-            <div className="relative mb-16 text-center">
-              {/* Glistening Horizon Accent */}
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-px bg-gradient-to-r from-transparent via-[#D4AF37]/30 to-transparent -translate-y-8" />
-              
-              <p className="text-[10px] tracking-[0.4em] text-white/40 uppercase mb-4 font-bold">Living & Ancient Forms</p>
-              <h2 className="text-3xl md:text-5xl font-serif text-white tracking-tight">Other Creations</h2>
-            </div>
-              <ProductGrid 
-                products={otherCreations}
-                onSelectForInquiry={handleAddToInquiry}
-                onProductClick={handleProductClick}
-              />
-            </div>
-          )}
+                {/* Poetic Gold Divider between categories */}
+                {index < groupedByCategory.length - 1 && (
+                  <div className="w-full py-16 md:py-24 my-8 bg-[#0a0a0a] border-y border-white/5 flex flex-col items-center justify-center text-center px-6">
+                    <div className="w-px h-10 bg-gradient-to-b from-transparent via-[#D4AF37]/50 to-transparent mx-auto mb-8" />
+                    <p className="font-serif text-xl md:text-3xl leading-relaxed text-[#FDFBF7]/40 max-w-2xl italic font-light">
+                      "Each wire, a dedication. Each form, a story."
+                    </p>
+                    <div className="w-px h-10 bg-gradient-to-b from-transparent via-[#D4AF37]/50 to-transparent mx-auto mt-8" />
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </section>
 
         <section className="py-32 px-6 md:px-16 border-t border-white/5 bg-[#050505]">

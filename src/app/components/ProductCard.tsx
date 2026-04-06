@@ -93,26 +93,28 @@ export function ProductCard({ product, onSelectForInquiry, onProductClick }: Pro
         </div>
 
       {/* Product info - Feed Style */}
-      <div className="text-left px-2 md:px-2 flex flex-col justify-between h-full">
-        <div className="flex justify-between items-start gap-4 mb-3">
+      <div className="text-left px-1 md:px-2 flex flex-col justify-between h-full">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-1 md:gap-4 mb-3">
           <div>
-            <h3 className="font-serif text-lg leading-tight md:text-3xl tracking-tight text-white group-hover:text-white/80 transition-colors line-clamp-2">{product.name}</h3>
-            <p className="font-sans text-[9px] md:text-[10px] uppercase tracking-[0.2em] md:tracking-[0.3em] text-white/40 mt-1 font-semibold">By {product.artist}</p>
+            <h3 className="font-serif text-sm leading-tight md:text-3xl tracking-tight text-white group-hover:text-white/80 transition-colors line-clamp-2">{product.name}</h3>
+            <p className="font-sans text-[8px] md:text-[10px] uppercase tracking-[0.2em] md:tracking-[0.3em] text-white/40 mt-0.5 font-semibold">By {product.artist}</p>
           </div>
-          <p className="font-serif text-lg md:text-xl text-white/90 whitespace-nowrap">${product.price.toLocaleString()}</p>
+          <p className="font-serif text-sm md:text-xl text-[#D4AF37] whitespace-nowrap mt-1 md:mt-0">${product.price.toLocaleString()}</p>
         </div>
         
-        {/* Mobile Inquiry Button - mimicking direct action */}
         <div className="md:hidden mt-2">
-          <a 
-            href="https://m.me/MosesRagay"
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="flex items-center justify-center w-full py-3 bg-white/5 border border-white/10 text-white text-[9px] uppercase tracking-[0.2em] font-bold hover:bg-white/10 transition-colors"
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelectForInquiry(product);
+              window.dispatchEvent(new CustomEvent('fly-to-vault', { 
+                detail: { x: e.clientX, y: e.clientY } 
+              }));
+            }}
+            className="flex items-center justify-center w-full py-2.5 bg-white/5 border border-white/10 text-white text-[8px] uppercase tracking-[0.2em] font-bold hover:bg-white/10 transition-colors"
           >
-            Inquire for Commission
-          </a>
+            Inquire
+          </button>
         </div>
       </div>
     </motion.div>
