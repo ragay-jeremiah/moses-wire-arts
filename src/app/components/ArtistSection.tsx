@@ -42,7 +42,7 @@ export function ArtistSection() {
           >
             <div className="relative rounded-2xl overflow-hidden border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] bg-zinc-900 w-full h-[350px] md:h-[700px]">
               <ImageWithFallback
-                src={imageUrl || "/hero-poster.png"}
+                src={imageUrl || "/artist-fallback.png"}
                 alt="Moises Ragay - Wire Artist"
                 className="w-full h-full object-cover grayscale opacity-80 hover:grayscale-0 hover:opacity-100 transition-all duration-700"
                 loading="lazy"
